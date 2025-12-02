@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Test Data - Automotive IoT</title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --md-primary: #a8c7fa;
+            --md-on-primary: #062e6f;
+            --md-primary-container: #004a77;
+            --md-on-primary-container: #d3e3fd;
+            --md-surface: #111318;
+            --md-surface-container: #1d2024;
+            --md-surface-container-low: #191c20;
+            --md-surface-container-high: #282a2e;
+            --md-on-surface: #e2e2e6;
+            --md-on-surface-variant: #c4c6d0;
+            --md-outline: #8e9099;
+            --md-outline-variant: #44474e;
+            --md-error: #ffb4ab;
+            --md-error-container: #93000a;
+            --md-elevation-1: 0 1px 3px 1px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.6);
+            --md-elevation-2: 0 2px 6px 2px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.6);
+            --md-radius-md: 12px;
+            --md-radius-lg: 16px;
+            --md-radius-xl: 28px;
+        }
+
+        body {
+            background: var(--md-surface);
+            min-height: 100vh;
+            color: var(--md-on-surface);
+            padding: 24px;
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+        }
+        .container {
+            max-width: 1000px;
+        }
+        .card {
+            background: var(--md-surface-container-low);
+            border: none;
+            border-radius: var(--md-radius-lg);
+            margin-bottom: 16px;
+            box-shadow: var(--md-elevation-1);
+        }
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--md-outline-variant);
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--md-on-surface);
+            padding: 16px 24px;
+        }
+        .card-body {
+            padding: 24px;
+        }
+        .btn-generate {
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+            border: none;
+            padding: 12px 24px;
+            font-weight: 500;
+            border-radius: var(--md-radius-xl);
+            box-shadow: var(--md-elevation-1);
+            transition: all 0.2s;
+        }
+        .btn-generate:hover {
+            box-shadow: var(--md-elevation-2);
+            background: var(--md-primary);
+            color: var(--md-on-primary);
+        }
+        .btn-danger {
+            background: var(--md-error);
+            border: none;
+            border-radius: var(--md-radius-xl);
+            padding: 12px 24px;
+            font-weight: 500;
+        }
+        .btn-danger:hover {
+            background: #7a0008;
+        }
+        .form-control, .form-select {
+            background: var(--md-surface);
+            border: 1px solid var(--md-outline-variant);
+            color: var(--md-on-surface);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+        .form-control:focus, .form-select:focus {
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+            border-color: var(--md-primary);
+            border-width: 2px;
+            box-shadow: none;
+        }
+        .form-select option {
+            background: var(--md-surface);
+            color: var(--md-on-surface);
+        }
+        .log-output {
+            background: var(--md-surface-container-high);
+            border: 1px solid var(--md-outline-variant);
+            border-radius: var(--md-radius-md);
+            padding: 16px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-success { color: #74c69d; }
+        .log-error { color: var(--md-error); }
+        .log-info { color: var(--md-primary); }
+        .header-link {
+            color: var(--md-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .header-link:hover {
+            text-decoration: underline;
+        }
+        .stats-badge {
+            background: var(--md-surface-container-high);
+            color: var(--md-primary);
+            padding: 8px 16px;
+            border-radius: var(--md-radius-xl);
+            margin: 4px;
+            display: inline-block;
+            font-size: 0.875rem;
+            border: 1px solid var(--md-outline-variant);
+        }
+        .text-muted {
+            color: var(--md-on-surface-variant) !important;
+        }
+        .form-label {
+            color: var(--md-on-surface);
+            font-weight: 500;
+        }
+        h1 {
+            font-weight: 400;
+            color: var(--md-on-surface);
+        }
+        .border-danger {
+            border: 1px solid var(--md-error) !important;
+        }
+        .text-danger {
+            color: var(--md-error) !important;
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>🧪 Test Data Generator</h1>
+            <a href="/" class="header-link">← Back to Dashboard</a>
+        </div>
+
+        <!-- Database Setup -->
+        <div class="card">
+            <div class="card-header">🗄️ Database Setup</div>
+            <div class="card-body">
+                <p class="text-muted">Initialize database tables (run this first if tables don't exist)</p>
+                <button onclick="initDatabase()" class="btn btn-generate">
+                    🔧 Initialize Database Tables
+                </button>
+            </div>
+        </div>
+
+        <!-- Current Stats -->
+        <div class="card">
+            <div class="card-header">📊 Current Database Stats</div>
+            <div class="card-body" id="stats">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Quick Generate -->
+        <div class="card">
+            <div class="card-header">⚡ Quick Generate</div>
+            <div class="card-body">
+                <p class="text-muted">Generate sample data for all tables at once</p>
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label class="form-label">Records per table:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select id="quickCount" class="form-select">
+                            <option value="5">5 records</option>
+                            <option value="10" selected>10 records</option>
+                            <option value="25">25 records</option>
+                            <option value="50">50 records</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button onclick="generateAll()" class="btn btn-generate">
+                            🚀 Generate All Test Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Tables -->
+        <div class="row">
+            <!-- Harsh Braking -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">⚠️ Harsh Braking Events</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Number of records:</label>
+                            <input type="number" id="harshBrakingCount" class="form-control" value="5" min="1" max="100">
+                        </div>
+                        <button onclick="generateHarshBraking()" class="btn btn-generate btn-sm">Generate</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Follow Distance -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">📏 Follow Distance Violations</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Number of records:</label>
+                            <input type="number" id="followDistanceCount" class="form-control" value="5" min="1" max="100">
+                        </div>
+                        <button onclick="generateFollowDistance()" class="btn btn-generate btn-sm">Generate</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed Snapshots -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">🏎️ Speed Snapshots</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Number of records:</label>
+                            <input type="number" id="speedSnapshotsCount" class="form-control" value="10" min="1" max="100">
+                        </div>
+                        <button onclick="generateSpeedSnapshots()" class="btn btn-generate btn-sm">Generate</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Clips -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">📸 Media Clips</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Number of records:</label>
+                            <input type="number" id="mediaClipsCount" class="form-control" value="3" min="1" max="100">
+                        </div>
+                        <button onclick="generateMediaClips()" class="btn btn-generate btn-sm">Generate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card border-danger">
+            <div class="card-header text-danger">⚠️ Danger Zone</div>
+            <div class="card-body">
+                <p class="text-muted">Clear all data from the database tables</p>
+                <button onclick="clearAllData()" class="btn btn-danger">
+                    🗑️ Clear All Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Log Output -->
+        <div class="card">
+            <div class="card-header">📝 Activity Log</div>
+            <div class="card-body">
+                <div id="logOutput" class="log-output">
+                    <div class="log-info">Ready to generate test data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base location for test data (Portland, OR area)
+        const baseLat = 45.5231;
+        const baseLng = -122.6765;
+
+        // Log helper
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div class="log-${type}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Random helpers
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function randomChoice(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomLocation() {
+            return {
+                latitude: baseLat + randomInRange(-0.1, 0.1),
+                longitude: baseLng + randomInRange(-0.1, 0.1)
+            };
+        }
+
+        // Load current stats
+        async function loadStats() {
+            try {
+                const [harshBraking, followDistance, speedSnapshots, mediaClips] = await Promise.all([
+                    fetch('/api/harsh-braking').then(r => r.json()),
+                    fetch('/api/follow-distance').then(r => r.json()),
+                    fetch('/api/speed-snapshots').then(r => r.json()),
+                    fetch('/api/media-clips').then(r => r.json())
+                ]);
+
+                document.getElementById('stats').innerHTML = `
+                    <span class="stats-badge">⚠️ Harsh Braking: ${harshBraking.length}</span>
+                    <span class="stats-badge">📏 Follow Distance: ${followDistance.length}</span>
+                    <span class="stats-badge">🏎️ Speed Snapshots: ${speedSnapshots.length}</span>
+                    <span class="stats-badge">📸 Media Clips: ${mediaClips.length}</span>
+                `;
+            } catch (error) {
+                document.getElementById('stats').innerHTML = `<span class="text-danger">Error loading stats: ${error.message}</span>`;
+            }
+        }
+
+        // Generate harsh braking events
+        async function generateHarshBraking() {
+            const count = parseInt(document.getElementById('harshBrakingCount').value) || 5;
+            log(`Generating ${count} harsh braking events...`, 'info');
+
+            const severities = ['low', 'medium', 'high'];
+            const lightConditions = ['day', 'night', 'dawn', 'dusk'];
+
+            for (let i = 0; i < count; i++) {
+                const loc = randomLocation();
+                const speedBefore = randomInRange(25, 70);
+                const data = {
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    deceleration_rate: randomInRange(3, 9),
+                    speed_before: speedBefore,
+                    speed_after: speedBefore - randomInRange(10, 30),
+                    severity: randomChoice(severities),
+                    light_condition: randomChoice(lightConditions)
+                };
+
+                try {
+                    const response = await fetch('/api/harsh-braking', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        log(`✓ Created harsh braking event #${i + 1}`, 'success');
+                    } else {
+                        log(`✗ Failed to create harsh braking event #${i + 1}`, 'error');
+                    }
+                } catch (error) {
+                    log(`✗ Error: ${error.message}`, 'error');
+                }
+            }
+            loadStats();
+        }
+
+        // Generate follow distance violations
+        async function generateFollowDistance() {
+            const count = parseInt(document.getElementById('followDistanceCount').value) || 5;
+            log(`Generating ${count} follow distance violations...`, 'info');
+
+            const lightConditions = ['day', 'night', 'dawn', 'dusk'];
+
+            for (let i = 0; i < count; i++) {
+                const loc = randomLocation();
+                const speed = randomInRange(30, 65);
+                const data = {
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    distance_meters: randomInRange(3, 12),
+                    current_speed: speed,
+                    required_distance: speed * 0.44704 * 2, // 2-second rule
+                    duration_seconds: Math.floor(randomInRange(2, 15)),
+                    light_condition: randomChoice(lightConditions)
+                };
+
+                try {
+                    const response = await fetch('/api/follow-distance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        log(`✓ Created follow distance violation #${i + 1}`, 'success');
+                    } else {
+                        log(`✗ Failed to create follow distance violation #${i + 1}`, 'error');
+                    }
+                } catch (error) {
+                    log(`✗ Error: ${error.message}`, 'error');
+                }
+            }
+            loadStats();
+        }
+
+        // Generate speed snapshots
+        async function generateSpeedSnapshots() {
+            const count = parseInt(document.getElementById('speedSnapshotsCount').value) || 10;
+            log(`Generating ${count} speed snapshots...`, 'info');
+
+            const lightConditions = ['day', 'night', 'dawn', 'dusk'];
+
+            for (let i = 0; i < count; i++) {
+                const loc = randomLocation();
+                const speedLimit = randomChoice([25, 35, 45, 55, 65]);
+                const speed = randomInRange(speedLimit - 10, speedLimit + 15);
+                const data = {
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    speed_mph: speed,
+                    speed_limit: speedLimit,
+                    is_speeding: speed > speedLimit ? 1 : 0,
+                    acceleration: randomInRange(-2, 3),
+                    heading: randomInRange(0, 360),
+                    light_condition: randomChoice(lightConditions)
+                };
+
+                try {
+                    const response = await fetch('/api/speed-snapshots', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        log(`✓ Created speed snapshot #${i + 1}`, 'success');
+                    } else {
+                        log(`✗ Failed to create speed snapshot #${i + 1}`, 'error');
+                    }
+                } catch (error) {
+                    log(`✗ Error: ${error.message}`, 'error');
+                }
+            }
+            loadStats();
+        }
+
+        // Generate media clips
+        async function generateMediaClips() {
+            const count = parseInt(document.getElementById('mediaClipsCount').value) || 3;
+            log(`Generating ${count} media clip records...`, 'info');
+
+            const mediaTypes = ['screenshot', 'video_clip'];
+            const eventTypes = ['harsh_braking', 'follow_distance', 'speeding', 'manual'];
+
+            for (let i = 0; i < count; i++) {
+                const loc = randomLocation();
+                const mediaType = randomChoice(mediaTypes);
+                const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+                const data = {
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    media_type: mediaType,
+                    file_path: `/clips/${randomChoice(eventTypes)}_${timestamp}_${i}.${mediaType === 'video_clip' ? 'mp4' : 'jpg'}`,
+                    duration_seconds: mediaType === 'video_clip' ? 10 : null,
+                    event_type: randomChoice(eventTypes),
+                    file_size_bytes: Math.floor(randomInRange(100000, 5000000))
+                };
+
+                try {
+                    const response = await fetch('/api/media-clips', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        log(`✓ Created media clip #${i + 1}`, 'success');
+                    } else {
+                        log(`✗ Failed to create media clip #${i + 1}`, 'error');
+                    }
+                } catch (error) {
+                    log(`✗ Error: ${error.message}`, 'error');
+                }
+            }
+            loadStats();
+        }
+
+        // Generate all data
+        async function generateAll() {
+            const count = parseInt(document.getElementById('quickCount').value) || 10;
+            log(`🚀 Starting bulk generation (${count} records per table)...`, 'info');
+
+            document.getElementById('harshBrakingCount').value = count;
+            document.getElementById('followDistanceCount').value = count;
+            document.getElementById('speedSnapshotsCount').value = count;
+            document.getElementById('mediaClipsCount').value = Math.ceil(count / 3);
+
+            await generateHarshBraking();
+            await generateFollowDistance();
+            await generateSpeedSnapshots();
+            await generateMediaClips();
+
+            log('✅ Bulk generation complete!', 'success');
+        }
+
+        // Clear all data
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to delete ALL data from the database? This cannot be undone!')) {
+                return;
+            }
+
+            log('🗑️ Clearing all data...', 'info');
+
+            try {
+                // Get all records and delete them
+                const tables = [
+                    { name: 'harsh-braking', idField: 'event_id' },
+                    { name: 'follow-distance', idField: 'violation_id' },
+                    { name: 'speed-snapshots', idField: 'snapshot_id' },
+                    { name: 'media-clips', idField: 'clip_id' }
+                ];
+
+                for (const table of tables) {
+                    const response = await fetch(`/api/${table.name}`);
+                    const records = await response.json();
+                    
+                    for (const record of records) {
+                        await fetch(`/api/${table.name}/${record[table.idField]}`, {
+                            method: 'DELETE'
+                        });
+                    }
+                    log(`✓ Cleared ${records.length} records from ${table.name}`, 'success');
+                }
+
+                log('✅ All data cleared!', 'success');
+                loadStats();
+            } catch (error) {
+                log(`✗ Error clearing data: ${error.message}`, 'error');
+            }
+        }
+
+        // Load stats on page load
+        loadStats();
+
+        // Initialize database tables
+        async function initDatabase() {
+            log('🔧 Initializing database tables...', 'info');
+            try {
+                const response = await fetch('/api/init-database', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    log('✅ ' + result.message, 'success');
+                    loadStats();
+                } else {
+                    log('✗ ' + result.message, 'error');
+                }
+            } catch (error) {
+                log('✗ Error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Database Entry Form</title>
+
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+    crossorigin="anonymous"
+/>
+<link rel="stylesheet" href="../styles.css" />
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"
+></script>
+</head>
+<body>
+    <h1>Phone Database</h1>
+
+    <div class="row mb-3">
+      <div class="col-6d-12">
+          <div class="mode-switcher">
+              <button id="add" class="second-button" style="border-radius: 1em 0em 0em 1em;">Add Entry</button>
+              <button id="search" class="first-button" style="border-radius: 0em 1em 1em 0em;">Search Entry</button>   
+          </div>
+      </div>
+  </div>
+
+  <div class="container">
+    <br />
+
+    <div class = "form">
+      <div id="invalid-form" class="alert alert-danger">&nbsp;</div>
+      <div id="valid-form" class="alert alert-success">&nbsp;</div>
+
+      <div class="row">
+        
+        <div class="col-6">
+          <label for="brand">Phone Brand:</label>
+        </div>
+        <div class="col-6">
+          <select id="brand">
+              <option selected>Choose a brand...</option>
+              <option value="apple">Apple</option>
+              <option value="samsung">Samsung</option>
+              <option value="motorola">Motorola</option>
+              <option value="oneplus">OnePlus</option>
+              <option value="google">Google</option>
+              <option value="nokia">Nokia</option>
+              <option value="other">Other</option>
+            </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="brand_id-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="name">Phone Name:</label>
+        </div>
+
+        <!-- Custom bootstrap select (it looks better) -->
+        <div class="col-6">
+          <input type="text" id="name" name="name" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="name-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="model">Model #/ID:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="model" name="model" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="model-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="colors">Avaliable Colors:</label>
+        </div>
+
+        <div class="col-6">
+          <input type="text" id="colors" name="colors" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="colors-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="ram">Memory(RAM) in GB:</label>
+        </div>
+
+        <div class="col-6">
+          <input type="text" id="ram" name="ram" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="ram-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="storage">Storage in GB:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="storage" name="storage" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="storage-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="rearcam">Rear Camera MP:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="rearcam" name="rearcam" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="rearcam-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="frontcam">Front Camera MP:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="frontcam" name="frontcam" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="frontcam-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="cpu">CPU:</label>
+        </div>
+
+        <div class="col-6">
+          <input type="text" id="cpu" name="cpu" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="cpu-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="gpu">GPU:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="gpu" name="gpu" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="gpu-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="battery">Battery mAh:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="battery" name="battery" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="battery-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="year">Release Year:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="year" name="year" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="year-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label for="price">Price:</label>
+        </div>
+        <div class="col-6">
+          <input type="text" id="price" name="price" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div id="price-error" class="col-12 text-danger">&nbsp;</div>
+        <!-- Error message will be displayed here -->
+      </div>
+
+
+      <div class="row">
+        <div class="col-6">
+          <button id="submit">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <script src="form.js"></script>
+    <!-- <div id="phones" class="overflow">Table goes here</div> 
+
+
+    <script src="../table.js"></script>
+    <script>
+        displayTable("display");
+    </script> -->
+</body>
+</html>
