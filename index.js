@@ -13,7 +13,7 @@ const db = require("./Server/Model/connection");
 //Setup defaults for script
 const app = express();
 const upload = multer();
-const port = 3000;
+const port = 443;
 
 // Middleware for JSON parsing (for Arduino HTTP requests)
 app.use(express.json());
