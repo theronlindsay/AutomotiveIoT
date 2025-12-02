@@ -1,5 +1,7 @@
 //Libraries
 const express = require("express");
+const https = require("https");
+const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { check, validationResult } = require("express-validator");
@@ -15,6 +17,13 @@ const db = require("./Server/Model/connection");
 const app = express();
 const upload = multer();
 const port = 80;
+const httpsPort = 443;
+
+// SSL Certificate
+const sslOptions = {
+    key: fs.readFileSync('/etc/letsencrypt/live/auto.theronlindsay.dev/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/auto.theronlindsay.dev/fullchain.pem')
+};
 
 // Middleware for JSON parsing (for Arduino HTTP requests)
 app.use(express.json());
@@ -395,7 +404,12 @@ app.post("/api/arduino/sensor-data", upload.none(), async (request, response) =>
     }
 });
 
-// Start server
+// Start HTTP server (for redirect to HTTPS)
 app.listen(port, () => {
-    console.log(`Automotive IoT Database Server running at http://localhost:${port}`);
+    console.log(`HTTP Server running on port ${port}`);
+});
+
+// Start HTTPS server
+https.createServer(sslOptions, app).listen(httpsPort, () => {
+    console.log(`Automotive IoT Database Server running at https://auto.theronlindsay.dev:${httpsPort}`);
 });
