@@ -21,6 +21,11 @@ app.use(express.json());
 //Load the GUI
 app.use(express.static("./Server/public"));
 
+// Serve index.html at root
+app.get("/", (request, response) => {
+    response.sendFile(__dirname + "/Server/public/index.html");
+});
+
 // ==================== DATABASE INITIALIZATION ====================
 
 // Initialize database tables
