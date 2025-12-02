@@ -1,5 +1,6 @@
 //Libraries
 const express = require("express");
+const path = require("path");
 const multer = require("multer");
 const { check, validationResult } = require("express-validator");
 
@@ -19,11 +20,11 @@ const port = 80;
 app.use(express.json());
 
 //Load the GUI
-app.use(express.static("./Server/public"));
+app.use(express.static(path.join(__dirname, "Server/public")));
 
 // Serve index.html at root
 app.get("/", (request, response) => {
-    response.sendFile(__dirname + "/Server/public/index.html");
+    response.sendFile(path.join(__dirname, "Server/public/index.html"));
 });
 
 // ==================== DATABASE INITIALIZATION ====================
