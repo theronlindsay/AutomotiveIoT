@@ -43,14 +43,12 @@ async function selectSnapshotById(id) {
 // Add new speed snapshot (Arduino endpoint - called every few seconds)
 async function addSnapshot(params) {
     const sql = `INSERT INTO SpeedSnapshots 
-                 (snapshot_timestamp, latitude, longitude, speed_mph, 
+                 (snapshot_timestamp, speed_mph, 
                   speed_limit, is_speeding, acceleration, heading, light_condition) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
     const isSpeeding = params.speed_mph > (params.speed_limit || 65) ? 1 : 0;
     const queryParams = [
         params.snapshot_timestamp || new Date(),
-        params.latitude,
-        params.longitude,
         params.speed_mph,
         params.speed_limit || null,
         isSpeeding,
@@ -66,14 +64,12 @@ async function addSnapshotsBatch(snapshots) {
     if (!snapshots || snapshots.length === 0) return { affectedRows: 0 };
     
     const sql = `INSERT INTO SpeedSnapshots 
-                 (snapshot_timestamp, latitude, longitude, speed_mph, 
+                 (snapshot_timestamp, speed_mph, 
                   speed_limit, is_speeding, acceleration, heading, light_condition) 
                  VALUES ?`;
     
     const values = snapshots.map(s => [
         s.snapshot_timestamp || new Date(),
-        s.latitude,
-        s.longitude,
         s.speed_mph,
         s.speed_limit || null,
         s.speed_mph > (s.speed_limit || 65) ? 1 : 0,

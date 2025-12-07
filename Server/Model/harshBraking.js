@@ -44,13 +44,11 @@ async function selectEventById(id) {
 // Add new harsh braking event (Arduino endpoint)
 async function addEvent(params) {
     const sql = `INSERT INTO HarshBrakingEvents 
-                 (event_timestamp, latitude, longitude, deceleration_rate, 
+                 (event_timestamp, deceleration_rate, 
                   speed_before, speed_after, severity, light_condition) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                 VALUES (?, ?, ?, ?, ?, ?)`;
     const queryParams = [
         params.event_timestamp || new Date(),
-        params.latitude,
-        params.longitude,
         params.deceleration_rate,
         params.speed_before,
         params.speed_after,

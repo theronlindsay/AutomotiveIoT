@@ -38,9 +38,6 @@ async function loadCurrentTab() {
         case 'speed-snapshots':
             await loadSpeedSnapshots(filters);
             break;
-        case 'media-clips':
-            await loadMediaClips(filters);
-            break;
     }
 }
 
@@ -62,7 +59,6 @@ async function loadHarshBraking(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Location</th>
                         <th>Deceleration</th>
                         <th>Speed Before</th>
                         <th>Speed After</th>
@@ -75,13 +71,10 @@ async function loadHarshBraking(filters) {
         
         if (data && data.length > 0) {
             data.forEach(event => {
-                const lat = parseFloat(event.latitude);
-                const lng = parseFloat(event.longitude);
                 html += `
                     <tr class="severity-${event.severity}">
                         <td>${event.event_id}</td>
                         <td>${formatDate(event.event_timestamp)}</td>
-                        <td>${lat.toFixed(4)}, ${lng.toFixed(4)} <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">📍</a></td>
                         <td>${event.deceleration_rate} m/s²</td>
                         <td>${event.speed_before} mph</td>
                         <td>${event.speed_after} mph</td>
@@ -91,7 +84,7 @@ async function loadHarshBraking(filters) {
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="9">No harsh braking events found</td></tr>';
+            html += '<tr><td colspan="8">No harsh braking events found</td></tr>';
         }
         
         html += '</tbody></table>';
@@ -115,7 +108,6 @@ async function loadFollowDistance(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Location</th>
                         <th>Distance</th>
                         <th>Speed</th>
                         <th>Required Distance</th>
@@ -128,13 +120,10 @@ async function loadFollowDistance(filters) {
         
         if (data && data.length > 0) {
             data.forEach(violation => {
-                const lat = parseFloat(violation.latitude);
-                const lng = parseFloat(violation.longitude);
                 html += `
                     <tr>
                         <td>${violation.violation_id}</td>
                         <td>${formatDate(violation.event_timestamp)}</td>
-                        <td>${lat.toFixed(4)}, ${lng.toFixed(4)} <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">📍</a></td>
                         <td>${violation.distance_meters} m</td>
                         <td>${violation.current_speed} mph</td>
                         <td>${violation.required_distance || 'N/A'} m</td>
@@ -144,7 +133,7 @@ async function loadFollowDistance(filters) {
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="9">No follow distance violations found</td></tr>';
+            html += '<tr><td colspan="8">No follow distance violations found</td></tr>';
         }
         
         html += '</tbody></table>';
@@ -169,7 +158,6 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Location</th>
                         <th>Speed</th>
                         <th>Speed Limit</th>
                         <th>Speeding</th>
@@ -183,13 +171,10 @@ async function loadSpeedSnapshots(filters) {
         if (data && data.length > 0) {
             data.forEach(snapshot => {
                 const speedingClass = snapshot.is_speeding ? 'speeding' : '';
-                const lat = parseFloat(snapshot.latitude);
-                const lng = parseFloat(snapshot.longitude);
                 html += `
                     <tr class="${speedingClass}">
                         <td>${snapshot.snapshot_id}</td>
                         <td>${formatDate(snapshot.snapshot_timestamp)}</td>
-                        <td>${lat.toFixed(4)}, ${lng.toFixed(4)} <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">📍</a></td>
                         <td>${snapshot.speed_mph} mph</td>
                         <td>${snapshot.speed_limit || 'N/A'} mph</td>
                         <td>${snapshot.is_speeding ? '⚠️ Yes' : '✅ No'}</td>
@@ -199,58 +184,7 @@ async function loadSpeedSnapshots(filters) {
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="9">No speed snapshots found</td></tr>';
-        }
-        
-        html += '</tbody></table>';
-        document.getElementById('content').innerHTML = html;
-    } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('content').innerHTML = '<p>Error loading data</p>';
-    }
-}
-
-// Load Media Clips
-async function loadMediaClips(filters) {
-    try {
-        const response = await fetch(`/api/media-clips?${filters}`);
-        const data = await response.json();
-        
-        let html = `
-            <h2>📸 Media Clips</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Time</th>
-                        <th>Location</th>
-                        <th>Type</th>
-                        <th>Event Type</th>
-                        <th>Duration</th>
-                        <th>File Path</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        
-        if (data && data.length > 0) {
-            data.forEach(clip => {
-                const lat = parseFloat(clip.latitude);
-                const lng = parseFloat(clip.longitude);
-                html += `
-                    <tr>
-                        <td>${clip.clip_id}</td>
-                        <td>${formatDate(clip.capture_timestamp)}</td>
-                        <td>${lat.toFixed(4)}, ${lng.toFixed(4)} <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank">📍</a></td>
-                        <td>${clip.media_type === 'screenshot' ? '📷' : '🎥'} ${clip.media_type}</td>
-                        <td>${clip.event_type || 'N/A'}</td>
-                        <td>${clip.duration_seconds ? clip.duration_seconds + ' sec' : 'N/A'}</td>
-                        <td>${clip.file_path}</td>
-                        <td><button onclick="deleteRecord('media-clips', ${clip.clip_id})">Delete</button></td>
-                    </tr>`;
-            });
-        } else {
-            html += '<tr><td colspan="8">No media clips found</td></tr>';
+            html += '<tr><td colspan="8">No speed snapshots found</td></tr>';
         }
         
         html += '</tbody></table>';

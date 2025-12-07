@@ -10,7 +10,6 @@ const { check, validationResult } = require("express-validator");
 const harshBraking = require("./Server/Model/harshBraking");
 const followDistance = require("./Server/Model/followDistance");
 const speedSnapshots = require("./Server/Model/speedSnapshots");
-const mediaClips = require("./Server/Model/mediaClips");
 const db = require("./Server/Model/connection");
 
 //Setup defaults for script
@@ -46,8 +45,6 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             CREATE TABLE IF NOT EXISTS HarshBrakingEvents (
                 event_id INT AUTO_INCREMENT PRIMARY KEY,
                 event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                latitude DECIMAL(10, 8) NOT NULL,
-                longitude DECIMAL(11, 8) NOT NULL,
                 deceleration_rate DECIMAL(6, 2) NOT NULL,
                 speed_before DECIMAL(6, 2),
                 speed_after DECIMAL(6, 2),
@@ -61,8 +58,6 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             CREATE TABLE IF NOT EXISTS FollowDistanceViolations (
                 violation_id INT AUTO_INCREMENT PRIMARY KEY,
                 event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                latitude DECIMAL(10, 8) NOT NULL,
-                longitude DECIMAL(11, 8) NOT NULL,
                 distance_meters DECIMAL(6, 2) NOT NULL,
                 current_speed DECIMAL(6, 2),
                 required_distance DECIMAL(6, 2),
@@ -76,8 +71,6 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             CREATE TABLE IF NOT EXISTS SpeedSnapshots (
                 snapshot_id INT AUTO_INCREMENT PRIMARY KEY,
                 snapshot_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                latitude DECIMAL(10, 8) NOT NULL,
-                longitude DECIMAL(11, 8) NOT NULL,
                 speed_mph DECIMAL(6, 2) NOT NULL,
                 speed_limit DECIMAL(6, 2),
                 is_speeding TINYINT(1) DEFAULT 0,
@@ -135,9 +128,7 @@ app.get("/api/harsh-braking/:id", upload.none(), async (request, response) => {
 });
 
 // POST new harsh braking event (ARDUINO ENDPOINT)
-app.post("/api/harsh-braking", upload.none(),
-    check("latitude").isFloat(),
-    check("longitude").isFloat(),
+app.post("/api/harsh-braking", express.json(),
     check("deceleration_rate").isFloat(),
     check("speed_before").isFloat(),
     check("speed_after").isFloat(),
@@ -192,9 +183,7 @@ app.get("/api/follow-distance/:id", upload.none(), async (request, response) => 
 });
 
 // POST new follow distance violation (ARDUINO ENDPOINT)
-app.post("/api/follow-distance", upload.none(),
-    check("latitude").isFloat(),
-    check("longitude").isFloat(),
+app.post("/api/follow-distance", express.json(),
     check("distance_meters").isFloat(),
     check("current_speed").isFloat(),
     async (request, response) => {
@@ -248,9 +237,7 @@ app.get("/api/speed-snapshots/:id", upload.none(), async (request, response) => 
 });
 
 // POST new speed snapshot (ARDUINO ENDPOINT)
-app.post("/api/speed-snapshots", upload.none(),
-    check("latitude").isFloat(),
-    check("longitude").isFloat(),
+app.post("/api/speed-snapshots", express.json(),
     check("speed_mph").isFloat(),
     async (request, response) => {
         const errors = validationResult(request);
@@ -268,7 +255,7 @@ app.post("/api/speed-snapshots", upload.none(),
 );
 
 // POST batch speed snapshots (ARDUINO ENDPOINT)
-app.post("/api/speed-snapshots/batch", upload.none(),
+app.post("/api/speed-snapshots/batch", express.json(),
     check("snapshots").isArray(),
     async (request, response) => {
         const errors = validationResult(request);
@@ -296,111 +283,52 @@ app.delete("/api/speed-snapshots/:id", upload.none(), async (request, response) 
     }
 });
 
-// ==================== MEDIA CLIPS ENDPOINTS ====================
-
-// GET all media clips
-app.get("/api/media-clips", upload.none(), async (request, response) => {
-    try {
-        const result = await mediaClips.selectAllClips(request.query);
-        return response.json(result);
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ message: "Server error" });
-    }
-});
-
-// GET media clip by ID
-app.get("/api/media-clips/:id", upload.none(), async (request, response) => {
-    try {
-        const result = await mediaClips.selectClipById(request.params.id);
-        return response.json(result);
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ message: "Server error" });
-    }
-});
-
-// POST new media clip reference (ARDUINO/CAMERA ENDPOINT)
-app.post("/api/media-clips", upload.none(),
-    check("latitude").isFloat(),
-    check("longitude").isFloat(),
-    check("media_type").isIn(['screenshot', 'video_clip']),
-    check("file_path").isString().isLength({ min: 1 }),
-    async (request, response) => {
-        const errors = validationResult(request);
-        if (!errors.isEmpty()) {
-            return response.status(400).json({ message: "Invalid data", errors: errors.array() });
-        }
-        try {
-            const result = await mediaClips.addClip(request.body);
-            return response.status(201).json({ data: result, message: "Media clip recorded" });
-        } catch (error) {
-            console.error(error);
-            return response.status(500).json({ message: "Server error" });
-        }
-    }
-);
-
-// DELETE media clip
-app.delete("/api/media-clips/:id", upload.none(), async (request, response) => {
-    try {
-        const result = await mediaClips.deleteClip(request.params.id);
-        return response.json(result);
-    } catch (error) {
-        console.error(error);
-        return response.status(500).json({ message: "Server error" });
-    }
-});
-
 // ==================== ARDUINO COMBINED ENDPOINT ====================
-app.post("/api/arduino/sensor-data", upload.none(), async (request, response) => {
+app.post("/api/arduino/sensor-data", express.json(), async (request, response) => {
     try {
         const data = request.body;
         const results = {};
 
-        // Always record speed snapshot
-        if (data.latitude && data.longitude && data.speed_mph) {
-            results.speedSnapshot = await speedSnapshots.addSnapshot({
-                latitude: data.latitude,
-                longitude: data.longitude,
-                speed_mph: data.speed_mph,
-                speed_limit: data.speed_limit,
-                acceleration: data.acceleration,
-                heading: data.heading,
-                light_condition: data.light_condition
+        // Validate required fields
+        if (!data.distance_cm || data.light_level === undefined) {
+            return response.status(400).json({ 
+                message: "Missing required sensor data",
+                required: ["distance_cm", "light_level"]
             });
         }
 
-        // Record harsh braking if detected
-        if (data.harsh_braking_detected && data.deceleration_rate) {
-            results.harshBraking = await harshBraking.addEvent({
-                latitude: data.latitude,
-                longitude: data.longitude,
-                deceleration_rate: data.deceleration_rate,
-                speed_before: data.speed_before,
-                speed_after: data.speed_after,
-                severity: data.severity,
-                light_condition: data.light_condition
-            });
+        // Convert raw sensor data
+        const distanceMeters = data.distance_cm / 100.0;  // Convert cm to meters
+        const lightLevel = data.light_level;  // 0-100 scale
+        
+        // Determine light condition based on light level
+        let lightCondition = 'day';
+        if (lightLevel < 20) {
+            lightCondition = 'night';
+        } else if (lightLevel < 40) {
+            lightCondition = 'dusk';
+        } else if (lightLevel < 60) {
+            lightCondition = 'dawn';
         }
 
-        // Record follow distance violation if detected
-        if (data.follow_distance_violation && data.distance_meters) {
-            results.followDistance = await followDistance.addViolation({
-                latitude: data.latitude,
-                longitude: data.longitude,
-                distance_meters: data.distance_meters,
-                current_speed: data.speed_mph,
-                required_distance: data.required_distance,
-                duration_seconds: data.duration_seconds,
-                light_condition: data.light_condition
-            });
-        }
+        // Store follow distance data (we track all distance readings)
+        results.followDistance = await followDistance.addViolation({
+            distance_meters: distanceMeters,
+            light_condition: lightCondition
+        });
 
-        return response.status(201).json({ data: results, message: "Sensor data recorded" });
+        return response.status(201).json({ 
+            data: results, 
+            message: "Sensor data processed",
+            processed: {
+                distance_meters: distanceMeters,
+                light_condition: lightCondition,
+                light_level: lightLevel
+            }
+        });
     } catch (error) {
         console.error(error);
-        return response.status(500).json({ message: "Server error" });
+        return response.status(500).json({ message: "Server error", error: error.message });
     }
 });
 

@@ -38,17 +38,15 @@ async function selectViolationById(id) {
 // Add new follow distance violation (Arduino endpoint)
 async function addViolation(params) {
     const sql = `INSERT INTO FollowDistanceViolations 
-                 (event_timestamp, latitude, longitude, distance_meters, 
+                 (event_timestamp, distance_meters, 
                   current_speed, required_distance, duration_seconds, light_condition) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                 VALUES (?, ?, ?, ?, ?, ?)`;
     const queryParams = [
         params.event_timestamp || new Date(),
-        params.latitude,
-        params.longitude,
         params.distance_meters,
-        params.current_speed,
-        params.required_distance,
-        params.duration_seconds,
+        params.current_speed || null,
+        params.required_distance || null,
+        params.duration_seconds || null,
         params.light_condition || 'day'
     ];
     return await connection.query(sql, queryParams);
