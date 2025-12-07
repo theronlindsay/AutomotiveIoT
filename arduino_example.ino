@@ -5,49 +5,52 @@
  * All processing is done server-side.
  * 
  * Required Hardware:
- * - Arduino with WiFi capability (ESP32, ESP8266, or Arduino with WiFi shield)
- * - LiDAR sensor (TFMini or VL53L0X) - for distance measurement
- * - Light sensor (LDR or BH1750) - for ambient light detection
+ * - Arduino with WiFi capability (WiFiNINA for Arduino Nano 33 IoT)
+ * - LiDAR sensor (TFMini-I2C)
+ * - Light sensor (LDR on analog pin A0)
  * 
  * Server Endpoint:
  * - POST /api/arduino/sensor-data - Raw sensor data
  */
 
-#include <WiFi.h>        // For ESP32 (use ESP8266WiFi.h for ESP8266)
-#include <HTTPClient.h>
+#include "Wire.h"
+#include "TFLI2C.h"
+#include "WiFiNINA.h"
 #include <ArduinoJson.h>
 
-// ==================== CONFIGURATION ====================
-const char* ssid = "WIFI_SSID";
-const char* password = "WIFI_PASSWORD";
-const char* serverUrl = "http://SERVER_IP:3000";
+TFLI2C sensor;
 
+const int sensorPin = A0;
 const int SEND_INTERVAL = 1000;  // Send data every 1 second
 
-// ==================== GLOBAL VARIABLES ====================
+int status = WL_IDLE_STATUS;
+WiFiClient client;
+char ssid[] = "Pixel_1262";
+char pass[] = "watermelone";
+char server[] = "auto.theronlindsay.dev";
+int port = 443;  // HTTPS port
+
 unsigned long lastSendTime = 0;
 
-// ==================== SETUP ====================
 void setup() {
-    Serial.begin(115200);
-    
+    Serial.begin(9600);
+    Wire.begin();
+    pinMode(sensorPin, INPUT);
+
     // Connect to WiFi
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+    while(status != WL_CONNECTED){
+        Serial.print("Attempting connection to ");
+        Serial.println(ssid);
+        
+        status = WiFi.begin(ssid, pass);
+        delay(2000);
     }
-    Serial.println("\nConnected!");
+
+    Serial.println("Connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
-    
-    // Initialize sensors here
-    // initLiDAR();
-    // initLightSensor();
 }
 
-// ==================== MAIN LOOP ====================
 void loop() {
     // Send sensor data at regular intervals
     if (millis() - lastSendTime >= SEND_INTERVAL) {
@@ -55,62 +58,60 @@ void loop() {
         lastSendTime = millis();
     }
     
-    delay(100);  // Small delay between reads
+    delay(100);
 }
-
-// ==================== SENSOR READING FUNCTIONS ====================
-
-int readLiDARDistanceCM() {
-    // Example with TFMini:
-    // return tfmini.getDistance();  // Returns cm
-    return 5000;  // Placeholder (50 meters in cm)
-}
-
-int readLightLevel() {
-    // Read light sensor and convert to 0-100 scale
-    // Example with LDR (assuming 0-4095 range for 12-bit ADC):
-    // int rawValue = analogRead(LDR_PIN);
-    // return map(rawValue, 0, 4095, 0, 100);
-    
-    // For 10-bit ADC (0-1023):
-    // int rawValue = analogRead(LDR_PIN);
-    // return map(rawValue, 0, 1023, 0, 100);
-    
-    return 75;  // Placeholder (75% brightness)
-}
-
-// ==================== DATA SENDING FUNCTION ====================
 
 void sendSensorData() {
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi not connected!");
-        return;
-    }
+    int16_t dist;
     
-    // Read raw sensor values
-    int distanceCM = readLiDARDistanceCM();
-    int lightLevel = readLightLevel();
+    // Read light sensor (convert 0-1023 to 0-100 scale)
+    int sensorValue = analogRead(sensorPin);
+    int lightLevel = map(sensorValue, 0, 1023, 0, 100);
     
-    HTTPClient http;
-    http.begin(String(serverUrl) + "/api/arduino/sensor-data");
-    http.addHeader("Content-Type", "application/json");
+    Serial.print("Light Level: ");
+    Serial.print(lightLevel);
+    Serial.println("%");
     
-    // Create simple JSON payload with only raw sensor data
-    StaticJsonDocument<128> doc;
-    doc["distance_cm"] = distanceCM;
-    doc["light_level"] = lightLevel;
-    
-    String jsonString;
-    serializeJson(doc, jsonString);
-    
-    int httpResponseCode = http.POST(jsonString);
-    
-    if (httpResponseCode > 0) {
-        Serial.printf("Sensor data sent: distance=%dcm, light=%d%%. Response: %d\n", 
-                      distanceCM, lightLevel, httpResponseCode);
+    // Read LiDAR distance
+    if (sensor.getData(dist, 0x10)) {
+        Serial.print("Distance: ");
+        Serial.print(dist);
+        Serial.println(" cm");
+        
+        // Connect and send data
+        if(client.connect(server, port)){
+            // Create JSON with only raw sensor data
+            StaticJsonDocument<128> doc;
+            doc["distance_cm"] = dist;           // Distance in centimeters
+            doc["light_level"] = lightLevel;     // Light level 0-100
+            
+            String jsonOutput;
+            serializeJson(doc, jsonOutput);
+            
+            // Send HTTPS request
+            client.println("POST /api/arduino/sensor-data HTTP/1.1");
+            client.print("Host: ");
+            client.println(server);
+            client.println("Content-Type: application/json");
+            client.print("Content-Length: ");
+            client.println(jsonOutput.length());
+            client.println();  // Mandatory blank line
+            client.println(jsonOutput);
+            
+            Serial.println("Sensor data sent!");
+            
+            // Wait for response (optional, for debugging)
+            delay(100);
+            while(client.available()){
+                String line = client.readStringUntil('\n');
+                Serial.println(line);
+            }
+            
+            client.stop();
+        } else {
+            Serial.println("Connection to server failed.");
+        }
     } else {
-        Serial.printf("Error sending data: %s\n", http.errorToString(httpResponseCode).c_str());
+        Serial.println("Failed to read LiDAR sensor.");
     }
-    
-    http.end();
 }

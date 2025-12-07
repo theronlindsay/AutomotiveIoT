@@ -325,6 +325,11 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         const data = request.body;
         const results = {};
 
+        // Log Arduino sensor data with clear identifier
+        console.log('\n🤖 [ARDUINO] Sensor data received:');
+        console.log(`   Distance: ${data.distance_cm} cm`);
+        console.log(`   Light Level: ${data.light_level}%`);
+
         // Validate required fields
         if (!data.distance_cm || data.light_level === undefined) {
             console.error('[ERROR] Missing required sensor data:', data);
