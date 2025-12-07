@@ -27,6 +27,24 @@ const sslOptions = {
 // Middleware for JSON parsing (for Arduino HTTP requests)
 app.use(express.json());
 
+// Middleware to log all incoming requests
+app.use((request, response, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`\n[${timestamp}] ${request.method} ${request.path}`);
+    
+    // Log request body if present
+    if (request.body && Object.keys(request.body).length > 0) {
+        console.log('Request Body:', JSON.stringify(request.body, null, 2));
+    }
+    
+    // Log query parameters if present
+    if (request.query && Object.keys(request.query).length > 0) {
+        console.log('Query Params:', JSON.stringify(request.query, null, 2));
+    }
+    
+    next();
+});
+
 //Load the GUI
 app.use(express.static(path.join(__dirname, "Server/public")));
 
@@ -98,7 +116,8 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
 
         return response.status(201).json({ message: "Database tables created successfully" });
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Database initialization failed:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Error creating tables", error: error.message });
     }
 });
@@ -111,7 +130,8 @@ app.get("/api/harsh-braking", upload.none(), async (request, response) => {
         const result = await harshBraking.selectAllEvents(request.query);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch harsh braking events:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -122,7 +142,8 @@ app.get("/api/harsh-braking/:id", upload.none(), async (request, response) => {
         const result = await harshBraking.selectEventById(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch harsh braking event by ID:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -135,13 +156,15 @@ app.post("/api/harsh-braking", express.json(),
     async (request, response) => {
         const errors = validationResult(request);
         if (!errors.isEmpty()) {
+            console.error('[ERROR] Invalid harsh braking data:', errors.array());
             return response.status(400).json({ message: "Invalid sensor data", errors: errors.array() });
         }
         try {
             const result = await harshBraking.addEvent(request.body);
             return response.status(201).json({ data: result, message: "Harsh braking event recorded" });
         } catch (error) {
-            console.error(error);
+            console.error('[ERROR] Failed to add harsh braking event:');
+            console.error('Error details:', error);
             return response.status(500).json({ message: "Server error" });
         }
     }
@@ -153,7 +176,8 @@ app.delete("/api/harsh-braking/:id", upload.none(), async (request, response) =>
         const result = await harshBraking.deleteEvent(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to delete harsh braking event:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -166,7 +190,8 @@ app.get("/api/follow-distance", upload.none(), async (request, response) => {
         const result = await followDistance.selectAllViolations(request.query);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch follow distance violations:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -177,7 +202,8 @@ app.get("/api/follow-distance/:id", upload.none(), async (request, response) => 
         const result = await followDistance.selectViolationById(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch follow distance violation by ID:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -189,13 +215,15 @@ app.post("/api/follow-distance", express.json(),
     async (request, response) => {
         const errors = validationResult(request);
         if (!errors.isEmpty()) {
+            console.error('[ERROR] Invalid follow distance data:', errors.array());
             return response.status(400).json({ message: "Invalid sensor data", errors: errors.array() });
         }
         try {
             const result = await followDistance.addViolation(request.body);
             return response.status(201).json({ data: result, message: "Follow distance violation recorded" });
         } catch (error) {
-            console.error(error);
+            console.error('[ERROR] Failed to add follow distance violation:');
+            console.error('Error details:', error);
             return response.status(500).json({ message: "Server error" });
         }
     }
@@ -207,7 +235,8 @@ app.delete("/api/follow-distance/:id", upload.none(), async (request, response) 
         const result = await followDistance.deleteViolation(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to delete follow distance violation:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -220,7 +249,8 @@ app.get("/api/speed-snapshots", upload.none(), async (request, response) => {
         const result = await speedSnapshots.selectAllSnapshots(request.query);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch speed snapshots:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -231,7 +261,8 @@ app.get("/api/speed-snapshots/:id", upload.none(), async (request, response) => 
         const result = await speedSnapshots.selectSnapshotById(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to fetch speed snapshot by ID:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -242,13 +273,15 @@ app.post("/api/speed-snapshots", express.json(),
     async (request, response) => {
         const errors = validationResult(request);
         if (!errors.isEmpty()) {
+            console.error('[ERROR] Invalid speed snapshot data:', errors.array());
             return response.status(400).json({ message: "Invalid sensor data", errors: errors.array() });
         }
         try {
             const result = await speedSnapshots.addSnapshot(request.body);
             return response.status(201).json({ data: result });
         } catch (error) {
-            console.error(error);
+            console.error('[ERROR] Failed to add speed snapshot:');
+            console.error('Error details:', error);
             return response.status(500).json({ message: "Server error" });
         }
     }
@@ -260,13 +293,15 @@ app.post("/api/speed-snapshots/batch", express.json(),
     async (request, response) => {
         const errors = validationResult(request);
         if (!errors.isEmpty()) {
+            console.error('[ERROR] Invalid batch snapshot data:', errors.array());
             return response.status(400).json({ message: "Invalid data", errors: errors.array() });
         }
         try {
             const result = await speedSnapshots.addSnapshotsBatch(request.body.snapshots);
             return response.status(201).json(result);
         } catch (error) {
-            console.error(error);
+            console.error('[ERROR] Failed to add batch speed snapshots:');
+            console.error('Error details:', error);
             return response.status(500).json({ message: "Server error" });
         }
     }
@@ -278,7 +313,8 @@ app.delete("/api/speed-snapshots/:id", upload.none(), async (request, response) 
         const result = await speedSnapshots.deleteSnapshot(request.params.id);
         return response.json(result);
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to delete speed snapshot:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
     }
 });
@@ -291,6 +327,7 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
 
         // Validate required fields
         if (!data.distance_cm || data.light_level === undefined) {
+            console.error('[ERROR] Missing required sensor data:', data);
             return response.status(400).json({ 
                 message: "Missing required sensor data",
                 required: ["distance_cm", "light_level"]
@@ -327,7 +364,8 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error('[ERROR] Failed to process Arduino sensor data:');
+        console.error('Error details:', error);
         return response.status(500).json({ message: "Server error", error: error.message });
     }
 });
