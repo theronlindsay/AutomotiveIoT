@@ -28,7 +28,7 @@ WiFiClient client;
 char ssid[] = "Pixel_1262";
 char pass[] = "watermelone";
 char server[] = "auto.theronlindsay.dev";
-int port = 443;  // HTTPS port
+int port = 80;  // HTTPS port
 
 unsigned long lastSendTime = 0;
 

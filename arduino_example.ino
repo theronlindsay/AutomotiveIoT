@@ -24,11 +24,11 @@ const int sensorPin = A0;
 const int SEND_INTERVAL = 1000;  // Send data every 1 second
 
 int status = WL_IDLE_STATUS;
-WiFiClient client;
+WiFiClient client;  // Use regular client for HTTP
 char ssid[] = "Pixel_1262";
 char pass[] = "watermelone";
 char server[] = "auto.theronlindsay.dev";
-int port = 443;  // HTTPS port
+int port = 80;  // HTTP port
 
 unsigned long lastSendTime = 0;
 
