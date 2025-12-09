@@ -158,33 +158,26 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Speed</th>
-                        <th>Speed Limit</th>
-                        <th>Speeding</th>
-                        <th>Acceleration</th>
-                        <th>Heading</th>
+                        <th>Acceleration (g)</th>
                         <th>Light</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>`;
         
         if (data && data.length > 0) {
             data.forEach(snapshot => {
-                const speedingClass = snapshot.is_speeding ? 'speeding' : '';
                 html += `
-                    <tr class="${speedingClass}">
+                    <tr>
                         <td>${snapshot.snapshot_id}</td>
                         <td>${formatDate(snapshot.snapshot_timestamp)}</td>
-                        <td>${snapshot.speed_mph} mph</td>
-                        <td>${snapshot.speed_limit || 'N/A'} mph</td>
-                        <td>${snapshot.is_speeding ? '⚠️ Yes' : '✅ No'}</td>
-                        <td>${snapshot.acceleration || 'N/A'} m/s²</td>
-                        <td>${snapshot.heading || 'N/A'}°</td>
+                        <td>${snapshot.acceleration || 'N/A'}</td>
                         <td>${snapshot.light_condition}</td>
+                        <td><button onclick="deleteRecord('speed-snapshots', ${snapshot.snapshot_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="8">No speed snapshots found</td></tr>';
+            html += '<tr><td colspan="5">No speed snapshots found</td></tr>';
         }
         
         html += '</tbody></table>';

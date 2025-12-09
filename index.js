@@ -348,20 +348,34 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         const accY = parseFloat(data.accY);  // G forces
         const accZ = parseFloat(data.accZ);  // G forces
         
-        // Determine light condition based on light level
+        // Calculate total acceleration magnitude
+        const totalAcceleration = Math.sqrt(accX * accX + accY * accY + accZ * accZ);
+        
+        // Get current time to determine dawn vs dusk
+        const currentTime = new Date();
+        const hour = currentTime.getHours();
+        
+        // Determine light condition based on light level and time of day
         let lightCondition = 'day';
         if (lightLevel < 20) {
             lightCondition = 'night';
-        } else if (lightLevel < 40) {
-            lightCondition = 'dusk';
         } else if (lightLevel < 60) {
-            lightCondition = 'dawn';
+            // Dawn = morning (AM), Dusk = evening (PM)
+            lightCondition = (hour < 12) ? 'dawn' : 'dusk';
         }
 
         // Store follow distance data (we track all distance readings)
         results.followDistance = await followDistance.addViolation({
             distance_meters: distanceMeters,
             light_condition: lightCondition
+        });
+
+        // Store speed snapshot with acceleration data
+        results.speedSnapshot = await speedSnapshots.addSnapshot({
+            acceleration: totalAcceleration.toFixed(3),
+            light_condition: lightCondition,
+            speed_mph: null,  // Not tracking speed yet
+            speed_limit: null
         });
 
         return response.status(201).json({ 
@@ -374,7 +388,8 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
                 acceleration: {
                     x: accX,
                     y: accY,
-                    z: accZ
+                    z: accZ,
+                    total: parseFloat(totalAcceleration.toFixed(3))
                 }
             }
         });
