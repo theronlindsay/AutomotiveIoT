@@ -329,19 +329,24 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         console.log('\n🤖 [ARDUINO] Sensor data received:');
         console.log(`   Distance: ${data.distance_cm} cm`);
         console.log(`   Light Level: ${data.light_level}%`);
+        console.log(`   Acceleration: X=${data.accX}g, Y=${data.accY}g, Z=${data.accZ}g`);
 
         // Validate required fields
-        if (!data.distance_cm || data.light_level === undefined) {
+        if (!data.distance_cm || data.light_level === undefined || 
+            data.accX === undefined || data.accY === undefined || data.accZ === undefined) {
             console.error('[ERROR] Missing required sensor data:', data);
             return response.status(400).json({ 
                 message: "Missing required sensor data",
-                required: ["distance_cm", "light_level"]
+                required: ["distance_cm", "light_level", "accX", "accY", "accZ"]
             });
         }
 
         // Convert raw sensor data
         const distanceMeters = data.distance_cm / 100.0;  // Convert cm to meters
         const lightLevel = data.light_level;  // 0-100 scale
+        const accX = parseFloat(data.accX);  // G forces
+        const accY = parseFloat(data.accY);  // G forces
+        const accZ = parseFloat(data.accZ);  // G forces
         
         // Determine light condition based on light level
         let lightCondition = 'day';
@@ -365,7 +370,12 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             processed: {
                 distance_meters: distanceMeters,
                 light_condition: lightCondition,
-                light_level: lightLevel
+                light_level: lightLevel,
+                acceleration: {
+                    x: accX,
+                    y: accY,
+                    z: accZ
+                }
             }
         });
     } catch (error) {
