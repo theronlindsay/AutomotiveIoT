@@ -253,19 +253,6 @@
                 </div>
             </div>
 
-            <!-- Media Clips -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">📸 Media Clips</div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Number of records:</label>
-                            <input type="number" id="mediaClipsCount" class="form-control" value="3" min="1" max="100">
-                        </div>
-                        <button onclick="generateMediaClips()" class="btn btn-generate btn-sm">Generate</button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Danger Zone -->
@@ -322,18 +309,16 @@
         // Load current stats
         async function loadStats() {
             try {
-                const [harshBraking, followDistance, speedSnapshots, mediaClips] = await Promise.all([
+                const [harshBraking, followDistance, speedSnapshots] = await Promise.all([
                     fetch('/api/harsh-braking').then(r => r.json()),
                     fetch('/api/follow-distance').then(r => r.json()),
-                    fetch('/api/speed-snapshots').then(r => r.json()),
-                    fetch('/api/media-clips').then(r => r.json())
+                    fetch('/api/speed-snapshots').then(r => r.json())
                 ]);
 
                 document.getElementById('stats').innerHTML = `
                     <span class="stats-badge">⚠️ Harsh Braking: ${harshBraking.length}</span>
                     <span class="stats-badge">📏 Follow Distance: ${followDistance.length}</span>
                     <span class="stats-badge">🏎️ Speed Snapshots: ${speedSnapshots.length}</span>
-                    <span class="stats-badge">📸 Media Clips: ${mediaClips.length}</span>
                 `;
             } catch (error) {
                 document.getElementById('stats').innerHTML = `<span class="text-danger">Error loading stats: ${error.message}</span>`;
@@ -457,46 +442,6 @@
             loadStats();
         }
 
-        // Generate media clips
-        async function generateMediaClips() {
-            const count = parseInt(document.getElementById('mediaClipsCount').value) || 3;
-            log(`Generating ${count} media clip records...`, 'info');
-
-            const mediaTypes = ['screenshot', 'video_clip'];
-            const eventTypes = ['harsh_braking', 'follow_distance', 'speeding', 'manual'];
-
-            for (let i = 0; i < count; i++) {
-                const loc = randomLocation();
-                const mediaType = randomChoice(mediaTypes);
-                const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
-                const data = {
-                    latitude: loc.latitude,
-                    longitude: loc.longitude,
-                    media_type: mediaType,
-                    file_path: `/clips/${randomChoice(eventTypes)}_${timestamp}_${i}.${mediaType === 'video_clip' ? 'mp4' : 'jpg'}`,
-                    duration_seconds: mediaType === 'video_clip' ? 10 : null,
-                    event_type: randomChoice(eventTypes),
-                    file_size_bytes: Math.floor(randomInRange(100000, 5000000))
-                };
-
-                try {
-                    const response = await fetch('/api/media-clips', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    if (response.ok) {
-                        log(`✓ Created media clip #${i + 1}`, 'success');
-                    } else {
-                        log(`✗ Failed to create media clip #${i + 1}`, 'error');
-                    }
-                } catch (error) {
-                    log(`✗ Error: ${error.message}`, 'error');
-                }
-            }
-            loadStats();
-        }
-
         // Generate all data
         async function generateAll() {
             const count = parseInt(document.getElementById('quickCount').value) || 10;
@@ -505,12 +450,10 @@
             document.getElementById('harshBrakingCount').value = count;
             document.getElementById('followDistanceCount').value = count;
             document.getElementById('speedSnapshotsCount').value = count;
-            document.getElementById('mediaClipsCount').value = Math.ceil(count / 3);
 
             await generateHarshBraking();
             await generateFollowDistance();
             await generateSpeedSnapshots();
-            await generateMediaClips();
 
             log('✅ Bulk generation complete!', 'success');
         }

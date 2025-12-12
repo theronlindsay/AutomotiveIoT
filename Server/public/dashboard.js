@@ -158,7 +158,10 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Acceleration (g)</th>
+                        <th>Speed</th>
+                        <th>Speed Limit</th>
+                        <th>Acceleration</th>
+                        <th>Heading</th>
                         <th>Light</th>
                         <th>Actions</th>
                     </tr>
@@ -171,13 +174,16 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <td>${snapshot.snapshot_id}</td>
                         <td>${formatDate(snapshot.snapshot_timestamp)}</td>
-                        <td>${snapshot.acceleration || 'N/A'}</td>
+                        <td>${snapshot.speed_mph || 'N/A'} mph</td>
+                        <td>${snapshot.speed_limit || 'N/A'} mph</td>
+                        <td>${snapshot.acceleration || 'N/A'} g</td>
+                        <td>${snapshot.heading || 'N/A'}°</td>
                         <td>${snapshot.light_condition}</td>
                         <td><button onclick="deleteRecord('speed-snapshots', ${snapshot.snapshot_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="5">No speed snapshots found</td></tr>';
+            html += '<tr><td colspan="8">No speed snapshots found</td></tr>';
         }
         
         html += '</tbody></table>';

@@ -99,21 +99,7 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             )
         `, []);
 
-        // Create MediaClips table
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS MediaClips (
-                clip_id INT AUTO_INCREMENT PRIMARY KEY,
-                capture_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                latitude DECIMAL(10, 8) NOT NULL,
-                longitude DECIMAL(11, 8) NOT NULL,
-                media_type ENUM('screenshot', 'video_clip') NOT NULL,
-                file_path VARCHAR(500) NOT NULL,
-                duration_seconds INT,
-                event_type ENUM('harsh_braking', 'follow_distance', 'speeding', 'manual'),
-                event_id INT,
-                file_size_bytes INT
-            )
-        `, []);
+
 
         return response.status(201).json({ message: "Database tables created successfully" });
     } catch (error) {
@@ -640,7 +626,6 @@ app.delete("/api/test/clear-data", upload.none(), async (request, response) => {
         await db.query('DELETE FROM HarshBrakingEvents', []);
         await db.query('DELETE FROM FollowDistanceViolations', []);
         await db.query('DELETE FROM SpeedSnapshots', []);
-        await db.query('DELETE FROM MediaClips', []);
         
         return response.json({ message: "All data cleared successfully" });
     } catch (error) {
