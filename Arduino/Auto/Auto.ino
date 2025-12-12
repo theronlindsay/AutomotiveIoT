@@ -8,6 +8,7 @@
  * - Arduino with WiFi capability (WiFiNINA for Arduino Nano 33 IoT)
  * - LiDAR sensor (TFMini-I2C)
  * - Light sensor (LDR on analog pin A0)
+ * - Accelerometer on analog pins A3 (X), A4 (Y), A5 (Z)
  * 
  * Server Endpoint:
  * - POST /api/arduino/sensor-data - Raw sensor data
@@ -20,7 +21,10 @@
 
 TFLI2C sensor;
 
-const int sensorPin = A0;
+const int lightPin = A0;
+const int accXPin = A3;
+const int accYPin = A4;
+const int accZPin = A5;
 const int SEND_INTERVAL = 1000;  // Send data every 1 second
 
 int status = WL_IDLE_STATUS;
@@ -35,7 +39,10 @@ unsigned long lastSendTime = 0;
 void setup() {
     Serial.begin(9600);
     Wire.begin();
-    pinMode(sensorPin, INPUT);
+    pinMode(lightPin, INPUT);
+    pinMode(accXPin, INPUT);
+    pinMode(accYPin, INPUT);
+    pinMode(accZPin, INPUT);
 
     // Connect to WiFi
     while(status != WL_CONNECTED){
@@ -61,16 +68,46 @@ void loop() {
     delay(100);
 }
 
+float readAcceleration(int pin) {
+    // Read analog pin (0-1023) and convert to g-force
+    // Assuming 3.3V reference and typical 400mV per g accelerometer
+    // Adjust these values based on your specific accelerometer specs
+    int rawValue = analogRead(pin);
+    float voltage = rawValue * (3.3 / 1023.0);  // Convert to voltage (0-3.3V)
+    float acceleration = (voltage - 1.65) / 0.33;  // Convert to g-force (1.65V = 0g, 0.33V per g)
+    return acceleration;
+}
+
 void sendSensorData() {
     int16_t dist;
     
+    // Read accelerometer data (X, Y, Z)
+    float accX = readAcceleration(accXPin);
+    float accY = readAcceleration(accYPin);
+    float accZ = readAcceleration(accZPin);
+    
+    // Calculate total acceleration magnitude (speed based on acceleration)
+    float totalAcceleration = sqrt(accX * accX + accY * accY + accZ * accZ);
+    
+    // Convert acceleration magnitude to approximate speed in mph
+    // Using: speed_mph = acceleration_g * 10 (empirical scaling factor)
+    float speedMph = totalAcceleration * 10.0;
+    
     // Read light sensor (convert 0-1023 to 0-100 scale)
-    int sensorValue = analogRead(sensorPin);
+    int sensorValue = analogRead(lightPin);
     int lightLevel = map(sensorValue, 0, 1023, 0, 100);
     
     Serial.print("Light Level: ");
     Serial.print(lightLevel);
-    Serial.println("%");
+    Serial.print("% | Acceleration (g): X=");
+    Serial.print(accX);
+    Serial.print(" Y=");
+    Serial.print(accY);
+    Serial.print(" Z=");
+    Serial.print(accZ);
+    Serial.print(" | Speed: ");
+    Serial.print(speedMph);
+    Serial.println(" mph");
     
     // Read LiDAR distance
     if (sensor.getData(dist, 0x10)) {
@@ -80,10 +117,14 @@ void sendSensorData() {
         
         // Connect and send data
         if(client.connect(server, port)){
-            // Create JSON with only raw sensor data
-            StaticJsonDocument<128> doc;
+            // Create JSON with all sensor data
+            StaticJsonDocument<256> doc;
             doc["distance_cm"] = dist;           // Distance in centimeters
+            doc["speed_mph"] = speedMph;         // Speed derived from acceleration magnitude
             doc["light_level"] = lightLevel;     // Light level 0-100
+            doc["accX"] = accX;                  // Acceleration X in g
+            doc["accY"] = accY;                  // Acceleration Y in g
+            doc["accZ"] = accZ;                  // Acceleration Z in g
             
             String jsonOutput;
             serializeJson(doc, jsonOutput);

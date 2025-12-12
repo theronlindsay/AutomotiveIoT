@@ -90,7 +90,7 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             CREATE TABLE IF NOT EXISTS SpeedSnapshots (
                 snapshot_id INT AUTO_INCREMENT PRIMARY KEY,
                 snapshot_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                speed_mph DECIMAL(6, 2) NOT NULL,
+                speed_mph DECIMAL(6, 2),
                 speed_limit DECIMAL(6, 2),
                 is_speeding TINYINT(1) DEFAULT 0,
                 acceleration DECIMAL(6, 2),
@@ -644,21 +644,24 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         // Log Arduino sensor data with clear identifier
         console.log('\n🤖 [ARDUINO] Sensor data received:');
         console.log(`   Distance: ${data.distance_cm} cm`);
+        console.log(`   Speed: ${data.speed_mph} mph`);
         console.log(`   Light Level: ${data.light_level}%`);
         console.log(`   Acceleration: X=${data.accX}g, Y=${data.accY}g, Z=${data.accZ}g`);
 
         // Validate required fields
         if (!data.distance_cm || data.light_level === undefined || 
-            data.accX === undefined || data.accY === undefined || data.accZ === undefined) {
+            data.accX === undefined || data.accY === undefined || data.accZ === undefined ||
+            data.speed_mph === undefined) {
             console.error('[ERROR] Missing required sensor data:', data);
             return response.status(400).json({ 
                 message: "Missing required sensor data",
-                required: ["distance_cm", "light_level", "accX", "accY", "accZ"]
+                required: ["distance_cm", "speed_mph", "light_level", "accX", "accY", "accZ"]
             });
         }
 
         // Convert raw sensor data
         const distanceMeters = data.distance_cm / 100.0;  // Convert cm to meters
+        const speedMph = parseFloat(data.speed_mph);
         const lightLevel = data.light_level;  // 0-100 scale
         const accX = parseFloat(data.accX);  // G forces
         const accY = parseFloat(data.accY);  // G forces
@@ -683,14 +686,15 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         // Store follow distance data (we track all distance readings)
         results.followDistance = await followDistance.addViolation({
             distance_meters: distanceMeters,
+            current_speed: speedMph,
             light_condition: lightCondition
         });
 
-        // Store speed snapshot with acceleration data
+        // Store speed snapshot with acceleration and speed data
         results.speedSnapshot = await speedSnapshots.addSnapshot({
+            speed_mph: speedMph,
             acceleration: totalAcceleration.toFixed(3),
             light_condition: lightCondition,
-            speed_mph: null,  // Not tracking speed yet
             speed_limit: null
         });
 
@@ -699,6 +703,7 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             message: "Sensor data processed",
             processed: {
                 distance_meters: distanceMeters,
+                speed_mph: speedMph,
                 light_condition: lightCondition,
                 light_level: lightLevel,
                 acceleration: {
