@@ -29,12 +29,18 @@ const int SEND_INTERVAL = 1000;  // Send data every 1 second
 
 int status = WL_IDLE_STATUS;
 WiFiClient client;
-char ssid[] = "Pixel_1262";
+char ssid[] = "Tron";
 char pass[] = "watermelone";
 char server[] = "auto.theronlindsay.dev";
 int port = 80;  // HTTPS port
 
 unsigned long lastSendTime = 0;
+
+// Calibration: baseline acceleration when stationary
+// These values are measured during setup
+float baselineAccX = 0.0;
+float baselineAccY = 0.0;
+float baselineAccZ = 0.0;
 
 void setup() {
     Serial.begin(9600);
@@ -56,6 +62,27 @@ void setup() {
     Serial.println("Connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    
+    // Calibrate accelerometer - average 10 readings while stationary
+    Serial.println("Calibrating accelerometer...");
+    delay(2000);  // Wait for vehicle to settle
+    float sumX = 0, sumY = 0, sumZ = 0;
+    for (int i = 0; i < 10; i++) {
+        sumX += readAcceleration(accXPin);
+        sumY += readAcceleration(accYPin);
+        sumZ += readAcceleration(accZPin);
+        delay(100);
+    }
+    baselineAccX = sumX / 10.0;
+    baselineAccY = sumY / 10.0;
+    baselineAccZ = sumZ / 10.0;
+    
+    Serial.print("Baseline: X=");
+    Serial.print(baselineAccX, 2);
+    Serial.print(" Y=");
+    Serial.print(baselineAccY, 2);
+    Serial.print(" Z=");
+    Serial.println(baselineAccZ, 2);
 }
 
 void loop() {
@@ -86,12 +113,28 @@ void sendSensorData() {
     float accY = readAcceleration(accYPin);
     float accZ = readAcceleration(accZPin);
     
-    // Calculate total acceleration magnitude (speed based on acceleration)
-    float totalAcceleration = sqrt(accX * accX + accY * accY + accZ * accZ);
+    // Subtract baseline (calibrated values when stationary)
+    float diffX = accX - baselineAccX;
+    float diffY = accY - baselineAccY;
+    float diffZ = accZ - baselineAccZ;
     
-    // Convert acceleration magnitude to approximate speed in mph
-    // Using: speed_mph = acceleration_g * 10 (empirical scaling factor)
-    float speedMph = totalAcceleration * 10.0;
+    // Calculate dynamic acceleration magnitude
+    float dynamicAcceleration = sqrt(diffX * diffX + diffY * diffY + diffZ * diffZ);
+    
+    // Add deadzone: ignore accelerations below 0.15g (noise/sensor drift)
+    if (dynamicAcceleration < 0.15) {
+        dynamicAcceleration = 0.0;
+    }
+    
+    // Convert acceleration to speed
+    // Much more conservative scaling: acceleration_g * 2.5
+    // This assumes smaller acceleration samples
+    float speedMph = dynamicAcceleration * 2.5;
+    
+    // Cap maximum speed at reasonable value (150 mph)
+    if (speedMph > 150) {
+        speedMph = 150;
+    }
     
     // Read light sensor (convert 0-1023 to 0-100 scale)
     int sensorValue = analogRead(lightPin);
@@ -99,12 +142,14 @@ void sendSensorData() {
     
     Serial.print("Light Level: ");
     Serial.print(lightLevel);
-    Serial.print("% | Acceleration (g): X=");
-    Serial.print(accX);
+    Serial.print("% | Raw Acc (g): X=");
+    Serial.print(accX, 2);
     Serial.print(" Y=");
-    Serial.print(accY);
+    Serial.print(accY, 2);
     Serial.print(" Z=");
-    Serial.print(accZ);
+    Serial.print(accZ, 2);
+    Serial.print(" | Dynamic: ");
+    Serial.print(dynamicAcceleration, 2);
     Serial.print(" | Speed: ");
     Serial.print(speedMph);
     Serial.println(" mph");
@@ -120,7 +165,7 @@ void sendSensorData() {
             // Create JSON with all sensor data
             StaticJsonDocument<256> doc;
             doc["distance_cm"] = dist;           // Distance in centimeters
-            doc["speed_mph"] = speedMph;         // Speed derived from acceleration magnitude
+            doc["speed_mph"] = speedMph;         // Speed derived from dynamic acceleration
             doc["light_level"] = lightLevel;     // Light level 0-100
             doc["accX"] = accX;                  // Acceleration X in g
             doc["accY"] = accY;                  // Acceleration Y in g
