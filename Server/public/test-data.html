@@ -467,27 +467,17 @@
             log('🗑️ Clearing all data...', 'info');
 
             try {
-                // Get all records and delete them
-                const tables = [
-                    { name: 'harsh-braking', idField: 'event_id' },
-                    { name: 'follow-distance', idField: 'violation_id' },
-                    { name: 'speed-snapshots', idField: 'snapshot_id' },
-                    { name: 'media-clips', idField: 'clip_id' }
-                ];
-
-                for (const table of tables) {
-                    const response = await fetch(`/api/${table.name}`);
-                    const records = await response.json();
-                    
-                    for (const record of records) {
-                        await fetch(`/api/${table.name}/${record[table.idField]}`, {
-                            method: 'DELETE'
-                        });
-                    }
-                    log(`✓ Cleared ${records.length} records from ${table.name}`, 'success');
+                const response = await fetch('/api/test/clear-data', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    log('✅ All data cleared!', 'success');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to clear data');
                 }
-
-                log('✅ All data cleared!', 'success');
+                
                 loadStats();
             } catch (error) {
                 log(`✗ Error clearing data: ${error.message}`, 'error');
