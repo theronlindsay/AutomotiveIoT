@@ -427,8 +427,8 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         const totalAcceleration = Math.sqrt(accX * accX + accY * accY + accZ * accZ);
         
         // Get current time to determine dawn vs dusk
-        currentTime = new Date();
-        const hour = currentTime.getHours();
+        const currentDate = new Date();
+        const hour = currentDate.getHours();
         
         // Determine light condition based on light level and time of day
         let lightCondition = 'day';
