@@ -439,8 +439,8 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             lightCondition = (hour < 12) ? 'dawn' : 'dusk';
         }
 
-        // Only store follow distance violation if distance is less than 9 meters (unsafe)
-        if (distanceMeters < 9) {
+        // Only store follow distance violation if distance is less than 9 meters (unsafe) and car is moving
+        if (distanceMeters < 9 && speedMph > 0) {
             results.followDistance = await followDistance.addViolation({
                 distance_meters: distanceMeters,
                 current_speed: speedMph,
@@ -473,7 +473,9 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
                 // Detect harsh braking if:
                 // 1. Accelerometer shows significant deceleration, OR
                 // 2. Speed dropped significantly
-                if (accelDeceleration > HARSH_BRAKING_THRESHOLD_G || decelerationRate > 3.0) {
+                // Skip if both speeds are 0 (stationary)
+                const wasMoving = previousReading.speed_mph > 0 || speedMph > 0;
+                if (wasMoving && (accelDeceleration > HARSH_BRAKING_THRESHOLD_G || decelerationRate > 3.0)) {
                     // Determine severity based on deceleration magnitude
                     let severity = 'low';
                     const maxDecel = Math.max(accelDeceleration, decelerationRate / 9.81);
