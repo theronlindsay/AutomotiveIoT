@@ -386,10 +386,16 @@ app.delete("/api/test/clear-data", upload.none(), async (request, response) => {
 });
 
 // ==================== ARDUINO COMBINED ENDPOINT ====================
+
+// Store previous reading for harsh braking detection
+let previousReading = null;
+let previousReadingTime = null;
+
 app.post("/api/arduino/sensor-data", express.json(), async (request, response) => {
     try {
         const data = request.body;
         const results = {};
+        const currentTime = Date.now();
 
         // Log Arduino sensor data with clear identifier
         console.log('\n🤖 [ARDUINO] Sensor data received:');
@@ -421,7 +427,7 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         const totalAcceleration = Math.sqrt(accX * accX + accY * accY + accZ * accZ);
         
         // Get current time to determine dawn vs dusk
-        const currentTime = new Date();
+        currentTime = new Date();
         const hour = currentTime.getHours();
         
         // Determine light condition based on light level and time of day
@@ -433,12 +439,73 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             lightCondition = (hour < 12) ? 'dawn' : 'dusk';
         }
 
-        // Store follow distance data (we track all distance readings)
-        results.followDistance = await followDistance.addViolation({
-            distance_meters: distanceMeters,
-            current_speed: speedMph,
-            light_condition: lightCondition
-        });
+        // Only store follow distance violation if distance is less than 9 meters (unsafe)
+        if (distanceMeters < 9) {
+            results.followDistance = await followDistance.addViolation({
+                distance_meters: distanceMeters,
+                current_speed: speedMph,
+                required_distance: 9,  // Safe distance threshold
+                light_condition: lightCondition
+            });
+        }
+
+        // Detect harsh braking by comparing to previous reading
+        if (previousReading && previousReadingTime) {
+            const timeDelta = (currentTime - previousReadingTime) / 1000.0;  // seconds
+            
+            // Only compare if readings are within 5 seconds of each other
+            if (timeDelta > 0 && timeDelta < 5) {
+                const speedChange = previousReading.speed_mph - speedMph;  // positive = slowing down
+                
+                // Calculate deceleration in m/s² (convert mph to m/s first)
+                // 1 mph = 0.44704 m/s
+                const speedChangeMps = speedChange * 0.44704;
+                const decelerationRate = speedChangeMps / timeDelta;
+                
+                // Also check accelerometer for sudden deceleration
+                // Assuming X-axis is forward/backward movement
+                const accelDeceleration = -accX;  // Negative X = forward deceleration
+                
+                // Harsh braking thresholds (in m/s² or g-force)
+                // 0.3g = ~2.94 m/s² (moderate), 0.5g = ~4.9 m/s² (hard), 0.7g = ~6.86 m/s² (severe)
+                const HARSH_BRAKING_THRESHOLD_G = 0.3;  // 0.3g threshold
+                
+                // Detect harsh braking if:
+                // 1. Accelerometer shows significant deceleration, OR
+                // 2. Speed dropped significantly
+                if (accelDeceleration > HARSH_BRAKING_THRESHOLD_G || decelerationRate > 3.0) {
+                    // Determine severity based on deceleration magnitude
+                    let severity = 'low';
+                    const maxDecel = Math.max(accelDeceleration, decelerationRate / 9.81);
+                    
+                    if (maxDecel > 0.7) {
+                        severity = 'high';
+                    } else if (maxDecel > 0.5) {
+                        severity = 'medium';
+                    }
+                    
+                    // Record harsh braking event
+                    results.harshBraking = await harshBraking.addEvent({
+                        deceleration_rate: Math.max(decelerationRate, accelDeceleration * 9.81).toFixed(2),
+                        speed_before: previousReading.speed_mph.toFixed(2),
+                        speed_after: speedMph.toFixed(2),
+                        severity: severity,
+                        light_condition: lightCondition
+                    });
+                    
+                    console.log(`⚠️ [HARSH BRAKING] Detected! Decel: ${decelerationRate.toFixed(2)} m/s², Severity: ${severity}`);
+                }
+            }
+        }
+        
+        // Store current reading for next comparison
+        previousReading = {
+            speed_mph: speedMph,
+            accX: accX,
+            accY: accY,
+            accZ: accZ
+        };
+        previousReadingTime = currentTime;
 
         // Store speed snapshot with acceleration and speed data
         results.speedSnapshot = await speedSnapshots.addSnapshot({

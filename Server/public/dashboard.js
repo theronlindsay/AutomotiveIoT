@@ -110,8 +110,6 @@ async function loadFollowDistance(filters) {
                         <th>Time</th>
                         <th>Distance</th>
                         <th>Speed</th>
-                        <th>Required Distance</th>
-                        <th>Duration</th>
                         <th>Light</th>
                         <th>Actions</th>
                     </tr>
@@ -126,14 +124,12 @@ async function loadFollowDistance(filters) {
                         <td>${formatDate(violation.event_timestamp)}</td>
                         <td>${violation.distance_meters} m</td>
                         <td>${violation.current_speed} mph</td>
-                        <td>${violation.required_distance || 'N/A'} m</td>
-                        <td>${violation.duration_seconds || 'N/A'} sec</td>
                         <td>${violation.light_condition}</td>
                         <td><button onclick="deleteRecord('follow-distance', ${violation.violation_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="8">No follow distance violations found</td></tr>';
+            html += '<tr><td colspan="6">No follow distance violations found</td></tr>';
         }
         
         html += '</tbody></table>';
@@ -159,9 +155,7 @@ async function loadSpeedSnapshots(filters) {
                         <th>ID</th>
                         <th>Time</th>
                         <th>Speed</th>
-                        <th>Speed Limit</th>
                         <th>Acceleration</th>
-                        <th>Heading</th>
                         <th>Light</th>
                         <th>Actions</th>
                     </tr>
@@ -175,15 +169,13 @@ async function loadSpeedSnapshots(filters) {
                         <td>${snapshot.snapshot_id}</td>
                         <td>${formatDate(snapshot.snapshot_timestamp)}</td>
                         <td>${snapshot.speed_mph || 'N/A'} mph</td>
-                        <td>${snapshot.speed_limit || 'N/A'} mph</td>
                         <td>${snapshot.acceleration || 'N/A'} g</td>
-                        <td>${snapshot.heading || 'N/A'}°</td>
                         <td>${snapshot.light_condition}</td>
                         <td><button onclick="deleteRecord('speed-snapshots', ${snapshot.snapshot_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="8">No speed snapshots found</td></tr>';
+            html += '<tr><td colspan="6">No speed snapshots found</td></tr>';
         }
         
         html += '</tbody></table>';
