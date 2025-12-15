@@ -10,7 +10,43 @@
  * - GetFollowDistanceViolationsIntent: How many instances of unsafe follow distance?
  * - IsCarMovingIntent: Is the car in motion?
  * - GetCarSpeedIntent: How fast is the car going?
+ * - ClearAllDataIntent: Clear all data from the tables
+ * - SetUsernameIntent: Set the user's name
  */
+/**
+ * Intent: Set the user's name
+ * Sets the username in the database via API
+ * @param {string} name - The new username to set
+ */
+async function handleSetUsernameIntent(name) {
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+        return {
+            speechText: "Please provide a valid name to set.",
+            success: false
+        };
+    }
+    try {
+        const response = await fetch(`${BASE_URL}/api/username`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name.trim() })
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        return {
+            speechText: `Your name has been set to ${name.trim()}.`,
+            success: true,
+            data: { name: name.trim() }
+        };
+    } catch (error) {
+        console.error('Error in SetUsernameIntent:', error);
+        return {
+            speechText: "Sorry, I couldn't set your name. Please try again later.",
+            success: false
+        };
+    }
+}
 
 const BASE_URL = 'https://auto.theronlindsay.dev';
 
@@ -21,6 +57,21 @@ async function fetchAPI(endpoint) {
         throw new Error(`API request failed: ${response.status}`);
     }
     return response.json();
+}
+
+// Helper function to mark records as reviewed
+async function markAsReviewed(table, ids) {
+    if (!ids || ids.length === 0) return;
+    
+    try {
+        await fetch(`${BASE_URL}/api/mark-reviewed`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table, ids })
+        });
+    } catch (error) {
+        console.error(`Error marking ${table} as reviewed:`, error);
+    }
 }
 
 // Helper function to determine time of day from light condition
@@ -57,6 +108,9 @@ async function handleGetTimeOfDayIntent() {
         const latestSnapshot = snapshots[0];
         const timeOfDay = getTimeOfDayDescription(latestSnapshot.light_condition);
         
+        // Mark the accessed snapshot as reviewed
+        await markAsReviewed('SpeedSnapshots', [latestSnapshot.snapshot_id]);
+        
         return {
             speechText: `Based on the light sensor, it appears to be ${timeOfDay}.`,
             success: true,
@@ -88,6 +142,10 @@ async function handleGetAbruptStopsIntent() {
                 data: { count: 0 }
             };
         }
+        
+        // Mark all accessed events as reviewed
+        const eventIds = harshBrakingEvents.map(e => e.event_id);
+        await markAsReviewed('HarshBrakingEvents', eventIds);
         
         const eventWord = count === 1 ? 'abrupt stop' : 'abrupt stops';
         return {
@@ -122,6 +180,10 @@ async function handleGetFollowDistanceViolationsIntent() {
             };
         }
         
+        // Mark all accessed violations as reviewed
+        const violationIds = violations.map(v => v.violation_id);
+        await markAsReviewed('FollowDistanceViolations', violationIds);
+        
         const instanceWord = count === 1 ? 'instance' : 'instances';
         return {
             speechText: `There have been ${count} ${instanceWord} of unsafe follow distance recorded.`,
@@ -154,6 +216,9 @@ async function handleIsCarMovingIntent() {
         
         const latestSnapshot = snapshots[0];
         const speed = parseFloat(latestSnapshot.speed_mph) || 0;
+        
+        // Mark the accessed snapshot as reviewed
+        await markAsReviewed('SpeedSnapshots', [latestSnapshot.snapshot_id]);
         
         // Consider car in motion if speed > 1 mph (to account for sensor noise)
         const isMoving = speed > 1;
@@ -198,6 +263,9 @@ async function handleGetCarSpeedIntent() {
         const latestSnapshot = snapshots[0];
         const speed = parseFloat(latestSnapshot.speed_mph) || 0;
         
+        // Mark the accessed snapshot as reviewed
+        await markAsReviewed('SpeedSnapshots', [latestSnapshot.snapshot_id]);
+        
         if (speed < 1) {
             return {
                 speechText: "The car is currently stationary.",
@@ -221,6 +289,34 @@ async function handleGetCarSpeedIntent() {
 }
 
 /**
+ * Intent: Clear all data from the tables
+ * Deletes all records from HarshBrakingEvents, FollowDistanceViolations, and SpeedSnapshots
+ */
+async function handleClearAllDataIntent() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/clear-data`);
+        
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        return {
+            speechText: "All driving data has been cleared successfully. The harsh braking events, follow distance violations, and speed snapshots have been deleted.",
+            success: true,
+            data: result
+        };
+    } catch (error) {
+        console.error('Error in ClearAllDataIntent:', error);
+        return {
+            speechText: "Sorry, I couldn't clear the data. Please try again later.",
+            success: false
+        };
+    }
+}
+
+/**
  * Main intent router - routes Alexa intents to appropriate handlers
  * @param {string} intentName - The name of the Alexa intent
  * @returns {object} Response object with speechText
@@ -237,6 +333,13 @@ async function handleIntent(intentName) {
             return await handleIsCarMovingIntent();
         case 'GetCarSpeedIntent':
             return await handleGetCarSpeedIntent();
+        case 'ClearAllDataIntent':
+            return await handleClearAllDataIntent();
+        case 'SetUsernameIntent':
+            // For Alexa, the name should be passed as a slot value, e.g., intent.slots.name.value
+            // Here, you would extract the name from the intent request in your Alexa skill code
+            // For demonstration, we'll use a placeholder
+            return await handleSetUsernameIntent('Driver');
         default:
             return {
                 speechText: "I'm not sure how to handle that request.",
@@ -252,5 +355,7 @@ module.exports = {
     handleGetAbruptStopsIntent,
     handleGetFollowDistanceViolationsIntent,
     handleIsCarMovingIntent,
-    handleGetCarSpeedIntent
+    handleGetCarSpeedIntent,
+    handleClearAllDataIntent,
+    handleSetUsernameIntent
 };

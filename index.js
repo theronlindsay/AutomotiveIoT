@@ -385,6 +385,83 @@ app.delete("/api/test/clear-data", upload.none(), async (request, response) => {
     }
 });
 
+// ==================== USERNAME ENDPOINTS ====================
+
+// GET current username
+app.get("/api/username", upload.none(), async (request, response) => {
+    try {
+        const result = await db.query('SELECT * FROM Username ORDER BY id DESC LIMIT 1', []);
+        if (result.length === 0) {
+            return response.json({ name: 'Driver' });
+        }
+        return response.json(result[0]);
+    } catch (error) {
+        console.error('[ERROR] Failed to fetch username:');
+        console.error('Error details:', error);
+        return response.status(500).json({ message: "Server error" });
+    }
+});
+
+// PUT update username (ALEXA ENDPOINT)
+app.put("/api/username", express.json(), async (request, response) => {
+    try {
+        const { name } = request.body;
+        if (!name || name.trim() === '') {
+            return response.status(400).json({ message: "Name is required" });
+        }
+        
+        // Update the existing username or insert if none exists
+        const existing = await db.query('SELECT * FROM Username ORDER BY id DESC LIMIT 1', []);
+        if (existing.length === 0) {
+            await db.query('INSERT INTO Username (name) VALUES (?)', [name.trim()]);
+        } else {
+            await db.query('UPDATE Username SET name = ? WHERE id = ?', [name.trim(), existing[0].id]);
+        }
+        
+        return response.json({ message: "Username updated successfully", name: name.trim() });
+    } catch (error) {
+        console.error('[ERROR] Failed to update username:');
+        console.error('Error details:', error);
+        return response.status(500).json({ message: "Server error" });
+    }
+});
+
+// ==================== MARK REVIEWED ENDPOINT (ALEXA) ====================
+
+// PATCH mark records as reviewed
+app.patch("/api/mark-reviewed", express.json(), async (request, response) => {
+    try {
+        const { table, ids } = request.body;
+        
+        if (!table || !ids || !Array.isArray(ids) || ids.length === 0) {
+            return response.status(400).json({ message: "Table and ids array are required" });
+        }
+        
+        // Validate table name to prevent SQL injection
+        const validTables = {
+            'HarshBrakingEvents': 'event_id',
+            'FollowDistanceViolations': 'violation_id',
+            'SpeedSnapshots': 'snapshot_id'
+        };
+        
+        if (!validTables[table]) {
+            return response.status(400).json({ message: "Invalid table name" });
+        }
+        
+        const idColumn = validTables[table];
+        const placeholders = ids.map(() => '?').join(',');
+        const sql = `UPDATE ${table} SET reviewed = 1 WHERE ${idColumn} IN (${placeholders})`;
+        
+        await db.query(sql, ids);
+        
+        return response.json({ message: `Marked ${ids.length} records as reviewed in ${table}` });
+    } catch (error) {
+        console.error('[ERROR] Failed to mark records as reviewed:');
+        console.error('Error details:', error);
+        return response.status(500).json({ message: "Server error" });
+    }
+});
+
 // ==================== ARDUINO COMBINED ENDPOINT ====================
 
 // Store previous reading for harsh braking detection

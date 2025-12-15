@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS HarshBrakingEvents (
     speed_before DECIMAL(6, 2),                  -- mph before braking
     speed_after DECIMAL(6, 2),                   -- mph after braking
     severity ENUM('low', 'medium', 'high') DEFAULT 'medium',
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Follow Distance Violations - detected by LiDAR
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS FollowDistanceViolations (
     current_speed DECIMAL(6, 2),                 -- Current speed in mph
     required_distance DECIMAL(6, 2),             -- Safe following distance based on speed
     duration_seconds INT,                        -- How long violation lasted
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Speed Snapshots - recorded every few seconds
@@ -34,10 +36,21 @@ CREATE TABLE IF NOT EXISTS SpeedSnapshots (
     is_speeding TINYINT(1) DEFAULT 0,            -- 1 if over speed limit
     acceleration DECIMAL(6, 2),                  -- Current acceleration (m/s²)
     heading DECIMAL(5, 2),                       -- Direction in degrees (0-360)
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Create indexes for better query performance
 CREATE INDEX idx_harsh_braking_timestamp ON HarshBrakingEvents(event_timestamp);
 CREATE INDEX idx_follow_distance_timestamp ON FollowDistanceViolations(event_timestamp);
 CREATE INDEX idx_speed_snapshots_timestamp ON SpeedSnapshots(snapshot_timestamp);
+
+-- Username - stores the driver's name (set via Alexa)
+CREATE TABLE IF NOT EXISTS Username (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default username
+INSERT INTO Username (name) VALUES ('Driver');
