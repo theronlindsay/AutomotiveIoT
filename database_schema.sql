@@ -47,7 +47,7 @@ CREATE INDEX idx_speed_snapshots_timestamp ON SpeedSnapshots(snapshot_timestamp)
 
 -- User Information (Single User)
 CREATE TABLE IF NOT EXISTS Users (
-    user_id INT PRIMARY KEY DEFAULT 1,
+    id INT PRIMARY KEY DEFAULT 1,
     username VARCHAR(255) NOT NULL,
-    CONSTRAINT single_user_check CHECK (user_id = 1)
+    CONSTRAINT single_user_check CHECK (id = 1)
 );

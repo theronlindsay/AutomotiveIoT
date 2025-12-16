@@ -233,7 +233,7 @@ const UsernameIntentHandler = {
                 .getResponse();
         }
         try {
-            await axios.put(`${BASE_URL}/api/username`, { name: name.trim() });
+            await axios.put(`${BASE_URL}/api/username`, { username: name.trim() });
             
             return handlerInput.responseBuilder
                 .speak(`Your name has been set to ${name.trim()}.`)

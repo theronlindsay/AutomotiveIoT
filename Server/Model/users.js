@@ -7,11 +7,11 @@ const db = require("./connection");
  * @returns {Promise<string>} The username.
  */
 async function getUsername() {
-    let [rows] = await db.query('SELECT username FROM UserSettings WHERE id = 1', []);
+    let [rows] = await db.query('SELECT username FROM Users WHERE id = 1', []);
     
     if (rows.length === 0) {
         // No user found, create a default one
-        await db.query('INSERT INTO UserSettings (id, username) VALUES (1, ?)', ['user']);
+        await db.query('INSERT INTO Users (id, username) VALUES (1, ?)', ['user']);
         return 'user';
     }
     
@@ -25,7 +25,7 @@ async function getUsername() {
  * @returns {Promise<void>}
  */
 async function updateUsername(newUsername) {
-    await db.query('UPDATE UserSettings SET username = ? WHERE id = 1', [newUsername]);
+    await db.query('UPDATE Users SET username = ? WHERE id = 1', [newUsername]);
 }
 
 module.exports = {

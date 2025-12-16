@@ -102,11 +102,12 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
 
 
 
-        // Create UserSettings table for a single user
+        // Create Users table for a single user
         await db.query(`
-            CREATE TABLE IF NOT EXISTS UserSettings (
+            CREATE TABLE IF NOT EXISTS Users (
                 id INT PRIMARY KEY DEFAULT 1,
-                username VARCHAR(255)
+                username VARCHAR(255) NOT NULL,
+                CONSTRAINT single_user_check CHECK (id = 1)
             )
         `, []);
 

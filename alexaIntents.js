@@ -29,7 +29,7 @@ async function handleSetUsernameIntent(name) {
         const response = await fetch(`${BASE_URL}/api/username`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name.trim() })
+            body: JSON.stringify({ username: name.trim() })
         });
         if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
