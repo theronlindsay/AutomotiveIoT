@@ -10,6 +10,7 @@ const { check, validationResult } = require("express-validator");
 const harshBraking = require("./Server/Model/harshBraking");
 const followDistance = require("./Server/Model/followDistance");
 const speedSnapshots = require("./Server/Model/speedSnapshots");
+const users = require("./Server/Model/users");
 const db = require("./Server/Model/connection");
 
 //Setup defaults for script
@@ -112,6 +113,14 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
                 event_type ENUM('harsh_braking', 'follow_distance', 'speeding', 'manual'),
                 event_id INT,
                 file_size_bytes INT
+            )
+        `, []);
+
+        // Create UserSettings table for a single user
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS UserSettings (
+                id INT PRIMARY KEY DEFAULT 1,
+                username VARCHAR(255)
             )
         `, []);
 
@@ -317,106 +326,6 @@ app.delete("/api/speed-snapshots/:id", upload.none(), async (request, response) 
         console.error('[ERROR] Failed to delete speed snapshot:');
         console.error('Error details:', error);
         return response.status(500).json({ message: "Server error" });
-    }
-});
-
-// ==================== ALEXA SKILL HANDLER ENDPOINT ====================
-// This is the main endpoint you configure in the Alexa Developer Console
-// Set your Alexa skill's endpoint to: https://auto.theronlindsay.dev/api/alexa/skill
-
-app.post("/api/alexa/skill", express.json(), async (request, response) => {
-    try {
-        const alexaRequest = request.body;
-        
-        console.log('\n🔊 [ALEXA] Request received:');
-        console.log('   Type:', alexaRequest.request?.type);
-        console.log('   Intent:', alexaRequest.request?.intent?.name);
-        
-        // Handle different Alexa request types
-        const requestType = alexaRequest.request?.type;
-        const intentName = alexaRequest.request?.intent?.name;
-        
-        let speechText = "I'm not sure how to help with that.";
-        let shouldEndSession = true;
-        
-        // LaunchRequest - when user opens the skill ("Alexa, open driving stats")
-        if (requestType === 'LaunchRequest') {
-            speechText = "Welcome to your Automotive IoT dashboard. You can ask for your driving summary, safety score, or latest stats. What would you like to know?";
-            shouldEndSession = false;
-        }
-        
-        // IntentRequest - when user asks something specific
-        else if (requestType === 'IntentRequest') {
-            
-            // Get Driving Summary
-            if (intentName === 'GetDrivingSummaryIntent') {
-                const period = alexaRequest.request?.intent?.slots?.period?.value || 'today';
-                const summary = await getDrivingSummaryData(period);
-                speechText = summary.speechText;
-            }
-            
-            // Get Safety Score
-            else if (intentName === 'GetSafetyScoreIntent') {
-                const period = alexaRequest.request?.intent?.slots?.period?.value || 'week';
-                const score = await getSafetyScoreData(period);
-                speechText = score.speechText;
-            }
-            
-            // Get Latest Stats
-            else if (intentName === 'GetLatestStatsIntent') {
-                const stats = await getLatestStatsData();
-                speechText = stats.speechText;
-            }
-            
-            // Built-in intents
-            else if (intentName === 'AMAZON.HelpIntent') {
-                speechText = "You can ask me for your driving summary, your safety score, or your latest driving stats. For example, say: what's my safety score this week?";
-                shouldEndSession = false;
-            }
-            else if (intentName === 'AMAZON.StopIntent' || intentName === 'AMAZON.CancelIntent') {
-                speechText = "Goodbye! Drive safely!";
-            }
-            else if (intentName === 'AMAZON.FallbackIntent') {
-                speechText = "I didn't understand that. You can ask for your driving summary, safety score, or latest stats.";
-                shouldEndSession = false;
-            }
-        }
-        
-        // SessionEndedRequest - cleanup
-        else if (requestType === 'SessionEndedRequest') {
-            console.log('   Session ended:', alexaRequest.request?.reason);
-            return response.json({ version: "1.0" });
-        }
-        
-        // Build Alexa response
-        const alexaResponse = {
-            version: "1.0",
-            response: {
-                outputSpeech: {
-                    type: "PlainText",
-                    text: speechText
-                },
-                shouldEndSession: shouldEndSession
-            }
-        };
-        
-        console.log('   Response:', speechText.substring(0, 100) + '...');
-        return response.json(alexaResponse);
-        
-    } catch (error) {
-        console.error('[ERROR] Alexa skill handler failed:');
-        console.error('Error details:', error);
-        
-        return response.json({
-            version: "1.0",
-            response: {
-                outputSpeech: {
-                    type: "PlainText",
-                    text: "Sorry, there was an error getting your driving data. Please try again later."
-                },
-                shouldEndSession: true
-            }
-        });
     }
 });
 
@@ -645,6 +554,36 @@ app.delete("/api/test/clear-data", upload.none(), async (request, response) => {
         return response.json({ message: "All data cleared successfully" });
     } catch (error) {
         console.error('[ERROR] Failed to clear test data:');
+        console.error('Error details:', error);
+        return response.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// ==================== USERNAME ENDPOINT ====================
+
+// GET the username
+app.get("/api/username", upload.none(), async (request, response) => {
+    try {
+        const username = await users.getUsername();
+        return response.json({ username: username });
+    } catch (error) {
+        console.error('[ERROR] Failed to get username:');
+        console.error('Error details:', error);
+        return response.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// PUT (update) the username
+app.put("/api/username", express.json(), async (request, response) => {
+    try {
+        const { username } = request.body;
+        if (!username) {
+            return response.status(400).json({ message: "Username is required" });
+        }
+        await users.updateUsername(username);
+        return response.json({ message: "Username updated successfully" });
+    } catch (error) {
+        console.error('[ERROR] Failed to update username:');
         console.error('Error details:', error);
         return response.status(500).json({ message: "Server error", error: error.message });
     }

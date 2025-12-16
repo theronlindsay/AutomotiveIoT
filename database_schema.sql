@@ -41,3 +41,10 @@ CREATE TABLE IF NOT EXISTS SpeedSnapshots (
 CREATE INDEX idx_harsh_braking_timestamp ON HarshBrakingEvents(event_timestamp);
 CREATE INDEX idx_follow_distance_timestamp ON FollowDistanceViolations(event_timestamp);
 CREATE INDEX idx_speed_snapshots_timestamp ON SpeedSnapshots(snapshot_timestamp);
+
+-- User Information (Single User)
+CREATE TABLE IF NOT EXISTS Users (
+    user_id INT PRIMARY KEY DEFAULT 1,
+    username VARCHAR(255) NOT NULL,
+    CONSTRAINT single_user_check CHECK (user_id = 1)
+);
