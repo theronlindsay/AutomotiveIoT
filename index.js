@@ -91,7 +91,7 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             CREATE TABLE IF NOT EXISTS SpeedSnapshots (
                 snapshot_id INT AUTO_INCREMENT PRIMARY KEY,
                 snapshot_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                speed_mph DECIMAL(6, 2) NOT NULL,
+                speed_mph DECIMAL(6, 2),
                 speed_limit DECIMAL(6, 2),
                 is_speeding TINYINT(1) DEFAULT 0,
                 acceleration DECIMAL(6, 2),
@@ -100,21 +100,7 @@ app.post("/api/init-database", upload.none(), async (request, response) => {
             )
         `, []);
 
-        // Create MediaClips table
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS MediaClips (
-                clip_id INT AUTO_INCREMENT PRIMARY KEY,
-                capture_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                latitude DECIMAL(10, 8) NOT NULL,
-                longitude DECIMAL(11, 8) NOT NULL,
-                media_type ENUM('screenshot', 'video_clip') NOT NULL,
-                file_path VARCHAR(500) NOT NULL,
-                duration_seconds INT,
-                event_type ENUM('harsh_braking', 'follow_distance', 'speeding', 'manual'),
-                event_id INT,
-                file_size_bytes INT
-            )
-        `, []);
+
 
         // Create UserSettings table for a single user
         await db.query(`
@@ -329,156 +315,6 @@ app.delete("/api/speed-snapshots/:id", upload.none(), async (request, response) 
     }
 });
 
-// Helper function to get driving summary data
-async function getDrivingSummaryData(period) {
-    let dateFilter = new Date();
-    if (period === 'today') {
-        dateFilter.setHours(0, 0, 0, 0);
-    } else if (period === 'week') {
-        dateFilter.setDate(dateFilter.getDate() - 7);
-    } else if (period === 'month') {
-        dateFilter.setMonth(dateFilter.getMonth() - 1);
-    }
-    
-    const dateString = dateFilter.toISOString().slice(0, 19).replace('T', ' ');
-    
-    const [harshBrakingEvents] = await db.query(
-        `SELECT COUNT(*) as count FROM HarshBrakingEvents WHERE event_timestamp >= ?`, [dateString]
-    );
-    const [followDistanceViolations] = await db.query(
-        `SELECT COUNT(*) as count FROM FollowDistanceViolations WHERE event_timestamp >= ?`, [dateString]
-    );
-    const [speedingEvents] = await db.query(
-        `SELECT COUNT(*) as count FROM SpeedSnapshots WHERE snapshot_timestamp >= ? AND is_speeding = 1`, [dateString]
-    );
-    
-    return {
-        speechText: generateSpeechText(period, harshBrakingEvents, followDistanceViolations, speedingEvents)
-    };
-}
-
-// Helper function to get safety score data
-async function getSafetyScoreData(period) {
-    let dateFilter = new Date();
-    if (period === 'today') {
-        dateFilter.setHours(0, 0, 0, 0);
-    } else if (period === 'week') {
-        dateFilter.setDate(dateFilter.getDate() - 7);
-    } else if (period === 'month') {
-        dateFilter.setMonth(dateFilter.getMonth() - 1);
-    }
-    
-    const dateString = dateFilter.toISOString().slice(0, 19).replace('T', ' ');
-    
-    const [harshCount] = await db.query(
-        `SELECT COUNT(*) as count FROM HarshBrakingEvents WHERE event_timestamp >= ?`, [dateString]
-    );
-    const [followCount] = await db.query(
-        `SELECT COUNT(*) as count FROM FollowDistanceViolations WHERE event_timestamp >= ?`, [dateString]
-    );
-    const [speedingCount] = await db.query(
-        `SELECT COUNT(*) as count FROM SpeedSnapshots WHERE snapshot_timestamp >= ? AND is_speeding = 1`, [dateString]
-    );
-    
-    let score = 100;
-    score -= (harshCount?.count || 0) * 5;
-    score -= (followCount?.count || 0) * 3;
-    score -= (speedingCount?.count || 0) * 2;
-    score = Math.max(0, Math.min(100, score));
-    
-    let rating = 'Excellent';
-    if (score < 50) rating = 'Needs Improvement';
-    else if (score < 70) rating = 'Fair';
-    else if (score < 85) rating = 'Good';
-    
-    return {
-        speechText: `Your driving safety score for the ${period} is ${score} out of 100, which is ${rating}. ` +
-                   `You had ${harshCount?.count || 0} harsh braking events, ` +
-                   `${followCount?.count || 0} follow distance violations, ` +
-                   `and ${speedingCount?.count || 0} speeding incidents.`
-    };
-}
-
-// Helper function to get latest stats data
-async function getLatestStatsData() {
-    const [latestBraking] = await db.query(
-        `SELECT * FROM HarshBrakingEvents ORDER BY event_timestamp DESC LIMIT 1`, []
-    );
-    const [latestFollowDistance] = await db.query(
-        `SELECT * FROM FollowDistanceViolations ORDER BY event_timestamp DESC LIMIT 1`, []
-    );
-    const [latestSpeed] = await db.query(
-        `SELECT * FROM SpeedSnapshots ORDER BY snapshot_timestamp DESC LIMIT 1`, []
-    );
-    
-    return {
-        speechText: generateLatestStatsSpeech(latestBraking, latestFollowDistance, latestSpeed)
-    };
-}
-
-// Helper function to generate speech text for summary
-function generateSpeechText(period, harshBraking, followDistance, speeding) {
-    const periodText = period === 'today' ? 'today' : 
-                       period === 'week' ? 'this week' : 'this month';
-    
-    let speech = `Here's your driving summary for ${periodText}. `;
-    
-    const hbCount = harshBraking?.count || 0;
-    const fdCount = followDistance?.count || 0;
-    const spCount = speeding?.count || 0;
-    
-    if (hbCount === 0 && fdCount === 0 && spCount === 0) {
-        speech += "Great news! You have no recorded incidents. Keep up the safe driving!";
-    } else {
-        if (hbCount > 0) {
-            speech += `You had ${hbCount} harsh braking ${hbCount === 1 ? 'event' : 'events'}. `;
-        }
-        if (fdCount > 0) {
-            speech += `You had ${fdCount} follow distance ${fdCount === 1 ? 'violation' : 'violations'}. `;
-        }
-        if (spCount > 0) {
-            speech += `You were caught speeding ${spCount} ${spCount === 1 ? 'time' : 'times'}. `;
-        }
-    }
-    
-    return speech;
-}
-
-// Helper function to generate speech for latest stats
-function generateLatestStatsSpeech(braking, followDistance, speed) {
-    let speech = "Here are your latest driving statistics. ";
-    
-    if (speed) {
-        speech += `Your last recorded speed was ${parseFloat(speed.speed_mph).toFixed(0)} miles per hour. `;
-    }
-    
-    if (braking) {
-        const timeAgo = getTimeAgo(new Date(braking.event_timestamp));
-        speech += `Your last harsh braking event was ${timeAgo}. `;
-    }
-    
-    if (followDistance) {
-        const timeAgo = getTimeAgo(new Date(followDistance.event_timestamp));
-        speech += `Your last follow distance violation was ${timeAgo}. `;
-    }
-    
-    if (!braking && !followDistance && !speed) {
-        speech = "I don't have any driving data recorded yet.";
-    }
-    
-    return speech;
-}
-
-// Helper function to get human-readable time ago
-function getTimeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
-    return `${Math.floor(seconds / 604800)} weeks ago`;
-}
 
 // ==================== TEST DATA ENDPOINTS (for development without Arduino) ====================
 
@@ -549,7 +385,6 @@ app.delete("/api/test/clear-data", upload.none(), async (request, response) => {
         await db.query('DELETE FROM HarshBrakingEvents', []);
         await db.query('DELETE FROM FollowDistanceViolations', []);
         await db.query('DELETE FROM SpeedSnapshots', []);
-        await db.query('DELETE FROM MediaClips', []);
         
         return response.json({ message: "All data cleared successfully" });
     } catch (error) {
@@ -590,29 +425,38 @@ app.put("/api/username", express.json(), async (request, response) => {
 });
 
 // ==================== ARDUINO COMBINED ENDPOINT ====================
+
+// Store previous reading for harsh braking detection
+let previousReading = null;
+let previousReadingTime = null;
+
 app.post("/api/arduino/sensor-data", express.json(), async (request, response) => {
     try {
         const data = request.body;
         const results = {};
+        const currentTime = Date.now();
 
         // Log Arduino sensor data with clear identifier
         console.log('\n🤖 [ARDUINO] Sensor data received:');
         console.log(`   Distance: ${data.distance_cm} cm`);
+        console.log(`   Speed: ${data.speed_mph} mph`);
         console.log(`   Light Level: ${data.light_level}%`);
         console.log(`   Acceleration: X=${data.accX}g, Y=${data.accY}g, Z=${data.accZ}g`);
 
         // Validate required fields
         if (!data.distance_cm || data.light_level === undefined || 
-            data.accX === undefined || data.accY === undefined || data.accZ === undefined) {
+            data.accX === undefined || data.accY === undefined || data.accZ === undefined ||
+            data.speed_mph === undefined) {
             console.error('[ERROR] Missing required sensor data:', data);
             return response.status(400).json({ 
                 message: "Missing required sensor data",
-                required: ["distance_cm", "light_level", "accX", "accY", "accZ"]
+                required: ["distance_cm", "speed_mph", "light_level", "accX", "accY", "accZ"]
             });
         }
 
         // Convert raw sensor data
         const distanceMeters = data.distance_cm / 100.0;  // Convert cm to meters
+        const speedMph = parseFloat(data.speed_mph);
         const lightLevel = data.light_level;  // 0-100 scale
         const accX = parseFloat(data.accX);  // G forces
         const accY = parseFloat(data.accY);  // G forces
@@ -622,8 +466,8 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
         const totalAcceleration = Math.sqrt(accX * accX + accY * accY + accZ * accZ);
         
         // Get current time to determine dawn vs dusk
-        const currentTime = new Date();
-        const hour = currentTime.getHours();
+        const currentDate = new Date();
+        const hour = currentDate.getHours();
         
         // Determine light condition based on light level and time of day
         let lightCondition = 'day';
@@ -634,17 +478,81 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             lightCondition = (hour < 12) ? 'dawn' : 'dusk';
         }
 
-        // Store follow distance data (we track all distance readings)
-        results.followDistance = await followDistance.addViolation({
-            distance_meters: distanceMeters,
-            light_condition: lightCondition
-        });
+        // Only store follow distance violation if distance is less than 9 meters (unsafe) and car is moving
+        if (distanceMeters < 9 && speedMph > 0) {
+            results.followDistance = await followDistance.addViolation({
+                distance_meters: distanceMeters,
+                current_speed: speedMph,
+                required_distance: 9,  // Safe distance threshold
+                light_condition: lightCondition
+            });
+        }
 
-        // Store speed snapshot with acceleration data
+        // Detect harsh braking by comparing to previous reading
+        if (previousReading && previousReadingTime) {
+            const timeDelta = (currentTime - previousReadingTime) / 1000.0;  // seconds
+            
+            // Only compare if readings are within 5 seconds of each other
+            if (timeDelta > 0 && timeDelta < 5) {
+                const speedChange = previousReading.speed_mph - speedMph;  // positive = slowing down
+                
+                // Calculate deceleration in m/s² (convert mph to m/s first)
+                // 1 mph = 0.44704 m/s
+                const speedChangeMps = speedChange * 0.44704;
+                const decelerationRate = speedChangeMps / timeDelta;
+                
+                // Also check accelerometer for sudden deceleration
+                // Assuming X-axis is forward/backward movement
+                const accelDeceleration = -accX;  // Negative X = forward deceleration
+                
+                // Harsh braking thresholds (in m/s² or g-force)
+                // 0.3g = ~2.94 m/s² (moderate), 0.5g = ~4.9 m/s² (hard), 0.7g = ~6.86 m/s² (severe)
+                const HARSH_BRAKING_THRESHOLD_G = 0.3;  // 0.3g threshold
+                
+                // Detect harsh braking if:
+                // 1. Accelerometer shows significant deceleration, OR
+                // 2. Speed dropped significantly
+                // Skip if both speeds are 0 (stationary)
+                const wasMoving = previousReading.speed_mph > 0 || speedMph > 0;
+                if (wasMoving && (accelDeceleration > HARSH_BRAKING_THRESHOLD_G || decelerationRate > 3.0)) {
+                    // Determine severity based on deceleration magnitude
+                    let severity = 'low';
+                    const maxDecel = Math.max(accelDeceleration, decelerationRate / 9.81);
+                    
+                    if (maxDecel > 0.7) {
+                        severity = 'high';
+                    } else if (maxDecel > 0.5) {
+                        severity = 'medium';
+                    }
+                    
+                    // Record harsh braking event
+                    results.harshBraking = await harshBraking.addEvent({
+                        deceleration_rate: Math.max(decelerationRate, accelDeceleration * 9.81).toFixed(2),
+                        speed_before: previousReading.speed_mph.toFixed(2),
+                        speed_after: speedMph.toFixed(2),
+                        severity: severity,
+                        light_condition: lightCondition
+                    });
+                    
+                    console.log(`⚠️ [HARSH BRAKING] Detected! Decel: ${decelerationRate.toFixed(2)} m/s², Severity: ${severity}`);
+                }
+            }
+        }
+        
+        // Store current reading for next comparison
+        previousReading = {
+            speed_mph: speedMph,
+            accX: accX,
+            accY: accY,
+            accZ: accZ
+        };
+        previousReadingTime = currentTime;
+
+        // Store speed snapshot with acceleration and speed data
         results.speedSnapshot = await speedSnapshots.addSnapshot({
+            speed_mph: speedMph,
             acceleration: totalAcceleration.toFixed(3),
             light_condition: lightCondition,
-            speed_mph: null,  // Not tracking speed yet
             speed_limit: null
         });
 
@@ -653,6 +561,7 @@ app.post("/api/arduino/sensor-data", express.json(), async (request, response) =
             message: "Sensor data processed",
             processed: {
                 distance_meters: distanceMeters,
+                speed_mph: speedMph,
                 light_condition: lightCondition,
                 light_level: lightLevel,
                 acceleration: {

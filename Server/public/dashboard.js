@@ -64,6 +64,7 @@ async function loadHarshBraking(filters) {
                         <th>Speed After</th>
                         <th>Severity</th>
                         <th>Light</th>
+                        <th>Reviewed</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -80,11 +81,12 @@ async function loadHarshBraking(filters) {
                         <td>${event.speed_after} mph</td>
                         <td><span class="badge ${event.severity}">${event.severity}</span></td>
                         <td>${event.light_condition}</td>
+                        <td>${event.reviewed ? 'Yes' : 'No'}</td>
                         <td><button onclick="deleteRecord('harsh-braking', ${event.event_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="8">No harsh braking events found</td></tr>';
+            html += '<tr><td colspan="9">No harsh braking events found</td></tr>';
         }
         
         html += '</tbody></table>';
@@ -110,9 +112,8 @@ async function loadFollowDistance(filters) {
                         <th>Time</th>
                         <th>Distance</th>
                         <th>Speed</th>
-                        <th>Required Distance</th>
-                        <th>Duration</th>
                         <th>Light</th>
+                        <th>Reviewed</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -126,14 +127,13 @@ async function loadFollowDistance(filters) {
                         <td>${formatDate(violation.event_timestamp)}</td>
                         <td>${violation.distance_meters} m</td>
                         <td>${violation.current_speed} mph</td>
-                        <td>${violation.required_distance || 'N/A'} m</td>
-                        <td>${violation.duration_seconds || 'N/A'} sec</td>
                         <td>${violation.light_condition}</td>
+                        <td>${violation.reviewed ? 'Yes' : 'No'}</td>
                         <td><button onclick="deleteRecord('follow-distance', ${violation.violation_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="8">No follow distance violations found</td></tr>';
+            html += '<tr><td colspan="7">No follow distance violations found</td></tr>';
         }
         
         html += '</tbody></table>';
@@ -158,8 +158,10 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <th>ID</th>
                         <th>Time</th>
-                        <th>Acceleration (g)</th>
+                        <th>Speed</th>
+                        <th>Acceleration</th>
                         <th>Light</th>
+                        <th>Reviewed</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -171,13 +173,15 @@ async function loadSpeedSnapshots(filters) {
                     <tr>
                         <td>${snapshot.snapshot_id}</td>
                         <td>${formatDate(snapshot.snapshot_timestamp)}</td>
-                        <td>${snapshot.acceleration || 'N/A'}</td>
+                        <td>${snapshot.speed_mph || 'N/A'} mph</td>
+                        <td>${snapshot.acceleration || 'N/A'} g</td>
                         <td>${snapshot.light_condition}</td>
+                        <td>${snapshot.reviewed ? 'Yes' : 'No'}</td>
                         <td><button onclick="deleteRecord('speed-snapshots', ${snapshot.snapshot_id})">Delete</button></td>
                     </tr>`;
             });
         } else {
-            html += '<tr><td colspan="5">No speed snapshots found</td></tr>';
+            html += '<tr><td colspan="7">No speed snapshots found</td></tr>';
         }
         
         html += '</tbody></table>';

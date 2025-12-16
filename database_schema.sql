@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS HarshBrakingEvents (
     speed_before DECIMAL(6, 2),                  -- mph before braking
     speed_after DECIMAL(6, 2),                   -- mph after braking
     severity ENUM('low', 'medium', 'high') DEFAULT 'medium',
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Follow Distance Violations - detected by LiDAR
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS FollowDistanceViolations (
     current_speed DECIMAL(6, 2),                 -- Current speed in mph
     required_distance DECIMAL(6, 2),             -- Safe following distance based on speed
     duration_seconds INT,                        -- How long violation lasted
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Speed Snapshots - recorded every few seconds
@@ -34,7 +36,8 @@ CREATE TABLE IF NOT EXISTS SpeedSnapshots (
     is_speeding TINYINT(1) DEFAULT 0,            -- 1 if over speed limit
     acceleration DECIMAL(6, 2),                  -- Current acceleration (m/s²)
     heading DECIMAL(5, 2),                       -- Direction in degrees (0-360)
-    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day'
+    light_condition ENUM('day', 'night', 'dawn', 'dusk') DEFAULT 'day',
+    reviewed TINYINT(1) DEFAULT 0                -- 1 if reviewed via Alexa
 );
 
 -- Create indexes for better query performance
